@@ -22,7 +22,6 @@ class Airplane
             seat_numbers.push_back('A' + i);
         }
     }
-    map<int, int> prices;
 
     void PrintPrices()
     {
@@ -35,7 +34,22 @@ class Airplane
 
 public:
 
-    void MakeTableOfPrices(vector<string> range_and_prices)
+    map<int, int> prices;
+
+    Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
+    {
+        getSeatNumbers();
+        cout << date << " " << flight_number << " " << number_of_seats_per_row << endl;
+
+
+    }
+
+};
+
+class FileReader
+{
+    string fileName;
+    void MakeTableOfPrices(vector<string> range_and_prices, map<int, int> prices)
     {
         for (int i = 0; i < range_and_prices.size(); i += 2)
         {
@@ -63,19 +77,6 @@ public:
 
         }
     }
-    Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
-    {
-        getSeatNumbers();
-        cout << date << " " << flight_number << " " << number_of_seats_per_row << endl;
-
-
-    }
-
-};
-
-class FileReader
-{
-    string fileName;
 
 public:
     vector<Airplane> airplanes;
@@ -127,7 +128,7 @@ public:
                 continue;
             }
 
-            airplane.MakeTableOfPrices(range_and_prices);
+            MakeTableOfPrices(range_and_prices, airplane.prices);
             airplanes.push_back(airplane);
 
             number_of_records--;
@@ -169,5 +170,5 @@ int main()
     string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
     FileReader fileReader(fileName);
     fileReader.ReadFile();
-    cout<<"Helllo"<<endl;
+    cout << "Helllo" << endl;
 }
