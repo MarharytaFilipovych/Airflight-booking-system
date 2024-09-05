@@ -6,7 +6,17 @@
 #include <sstream>
 using namespace std;
 
+class Ticket
+{
 
+    string passenger_name;
+    char number_of_seat;
+    bool book_status;
+    Ticket(string name, char number, bool status) :
+        passenger_name(name), number_of_seat(number), book_status(status)
+    {
+    }
+};
 class Airplane
 {
     int number_of_seats_per_row;
@@ -22,47 +32,20 @@ class Airplane
             seat_numbers.push_back('A' + i);
         }
     }
-    map<int, int> prices;
+    
 
     void PrintPrices()
     {
-        map<int, int>::iterator it = prices.begin();
-        while (it != prices.end())
+        for (auto i = prices.begin(); i != prices.end(); i++)
         {
-            cout << it->first << " " << it->second << endl;
+            cout << "rows: " << i->first.front() << "-" << i->first.back();
+            cout << " -> " << i->second << "$" << endl;
         }
     }
 
 public:
-
-    void MakeTableOfPrices(vector<string> range_and_prices)
-    {
-        for (int i = 0; i < range_and_prices.size(); i += 2)
-        {
-            string range = range_and_prices[i];
-
-            int dash = range.find('-');
-            if (dash == string::npos) {
-                cout << "Invalid data format! " << endl;
-                return;
-            }
-            int start = stoi(range.substr(0, dash));
-            int end = stoi(range.substr(dash + 1));
-
-            string price_with_dollar = range_and_prices[i + 1];
-            int dollar = price_with_dollar.find('$');
-            if (dollar == string::npos) {
-                cout << "Invalid data format! " << endl;
-                return;
-            }
-            int price = stoi(price_with_dollar.substr(0, dollar));
-            for (int i = start; i <= end; i++)
-            {
-                prices[i] = price;
-            }
-
-        }
-    }
+    map<vector<int>, int> prices;
+       
     Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
     {
         getSeatNumbers();
@@ -70,21 +53,44 @@ public:
 
 
     }
+    void displayAirplane()
+    {
+        cout << "Date: " << date << ";\n"
+            << "Flight number: " << flight_number << ";\n"
+        << "Flight number: " << flight_number << ";\n"
+        << "Number of seats per row: " << number_of_seats_per_row << ";\n"
+        << "Prices for rows: " ;
+        PrintPrices();
+
+    }
 
 };
 
 class FileReader
 {
-    string fileName;
-
-public:
+    string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
+    
     vector<Airplane> airplanes;
 
-    FileReader(string file) : fileName(file)
+    void  MakeTableOfPrices(vector<string> range_and_prices, map<vector<int>,int> &prices)
     {
-
+        for (int i = 0; i < range_and_prices.size(); i += 2)
+        {
+            string range = range_and_prices[i];
+            size_t dash = range.find('-');
+            int start = stoi(range.substr(0, dash));
+            int end = stoi(range.substr(dash + 1));
+            string price_with_dollar = range_and_prices[i + 1];
+            size_t dollar = price_with_dollar.find('$');        
+            int price = stoi(price_with_dollar.substr(0, dollar));
+            vector<int> rows;
+            for (int i = start; i <= end; i++)
+            {
+                rows.push_back(i);
+            }
+            prices[rows] = price;
+        }
     }
-
     void ReadFile()
     {
         ifstream file(fileName);
@@ -96,16 +102,15 @@ public:
 
         int number_of_records;
         file >> number_of_records;
-        file.ignore(); 
+        file.ignore();
 
         string line;
         while (number_of_records > 0)
         {
             if (!getline(file, line) || line.empty())
             {
-                continue; 
+                continue;
             }
-
             istringstream this_line(line);
             string date, flight_number;
             int seats_per_row;
@@ -120,42 +125,27 @@ public:
             {
                 range_and_prices.push_back(range_and_price);
             }
-
-            if (range_and_prices.size() % 2 != 0)
-            {
-                cout << "Invalid data format for range and prices!" << endl;
-                continue;
-            }
-
-            airplane.MakeTableOfPrices(range_and_prices);
+            MakeTableOfPrices(range_and_prices, airplane.prices);
             airplanes.push_back(airplane);
 
             number_of_records--;
         }
-
         cout << "The file was read successfully!" << endl;
         file.close();
     }
+public:
 
-
+    FileReader() 
+    {
+        ReadFile();
+    }
+    const vector<Airplane>& GetAirplanes() const
+    {
+        return airplanes;
+    }
+    
 };
 
-
-/*
-class Ticket
-{
-
-    string passenger_name;
-    char number_of_seat;
-    bool book_status;
-    Ticket(string name, char number, bool status, string day, string flight, int price):
-        passenger_name(name), number_of_seat(number), book_status(status), date(day), flight_number(flight), price_of_ticket(price)
-        {
-        }
-
-
-
-};*/
 class UserInput
 {
 
@@ -164,10 +154,13 @@ class Commands
 {
 
 };
+class ProgramEngine
+{
+    FileReader fileReader;
+};
+
 int main()
 {
-    string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
-    FileReader fileReader(fileName);
-    fileReader.ReadFile();
+    
     cout<<"Helllo"<<endl;
 }
