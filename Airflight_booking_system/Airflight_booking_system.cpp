@@ -38,9 +38,11 @@ class Airplane
     {
         for (auto i = prices.begin(); i != prices.end(); i++)
         {
-            cout << "rows: " << i->first.front() << "-" << i->first.back();
-            cout << " -> " << i->second << "$" << endl;
+            cout << i->first.front() << "-" << i->first.back();
+            cout << " -> " << i->second << "$  ";
         }
+        cout << endl;
+
     }
 
 public:
@@ -49,17 +51,14 @@ public:
     Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
     {
         getSeatNumbers();
-        cout << date << " " << flight_number << " " << number_of_seats_per_row << endl;
-
-
     }
+
     void displayAirplane()
     {
-        cout << "Date: " << date << ";\n"
-            << "Flight number: " << flight_number << ";\n"
-        << "Flight number: " << flight_number << ";\n"
-        << "Number of seats per row: " << number_of_seats_per_row << ";\n"
-        << "Prices for rows: " ;
+        cout << "Info about airplane " << flight_number << ":\n"
+         << "* date: " << date << "\n"
+        << "* number of seats per row: " << number_of_seats_per_row << "\n"
+        << "* prices for rows: " ;
         PrintPrices();
 
     }
@@ -157,10 +156,24 @@ class Commands
 class ProgramEngine
 {
     FileReader fileReader;
+    void function()
+    {
+        vector<Airplane> airplanes = fileReader.GetAirplanes();
+        for (int i = 0; i < airplanes.size(); i++)
+        {
+            airplanes[i].displayAirplane();
+        }
+    }
+public:
+    ProgramEngine()
+    {
+        function();
+    }
 };
 
 int main()
 {
-    
+    ProgramEngine engine;
+
     cout<<"Helllo"<<endl;
 }
