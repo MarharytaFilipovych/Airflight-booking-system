@@ -9,14 +9,15 @@ using namespace std;
 class Ticket
 {
 
-    string number_of_seat;
+    const string number_of_seat;
     bool booked;
+
 public:
     Ticket(string number, bool status) :
          number_of_seat(number), booked(status)
     {
     }
-    void displayTicket()
+    void displayTicket() const
     {
         if (booked)
         {
@@ -31,13 +32,13 @@ public:
 };
 class Airplane
 {
-    int number_of_seats_per_row;
+    const int number_of_seats_per_row;
     vector<char> seat_numbers;
-    string date;
-    string flight_number;
+    const string date;
+    const string flight_number;
     vector<Ticket> tickets;
 
-    void getSeatNumbers()
+    void getSeatNumbers()  
     {
         seat_numbers.clear();
         for (int i = 0; i < number_of_seats_per_row; i++)
@@ -45,7 +46,7 @@ class Airplane
             seat_numbers.push_back('A' + i);
         }
     }
-    void generateTickets()
+    void generateTickets() 
     {
         for (int i = 0; i < number_of_seats_per_row; i++)
         {
@@ -54,12 +55,10 @@ class Airplane
                 string ticket_number = to_string(i) + seat_numbers[j];
                 Ticket ticket(ticket_number, false);
                 tickets.push_back(ticket);
-            }
-           
+            }         
         }
-
     }
-    void displayTickets()
+    void displayTickets() const
     {
         for (int i = 0; i < tickets.size(); i++)
         {
@@ -68,7 +67,7 @@ class Airplane
         }
     }
 
-    void PrintPrices()
+    void PrintPrices() const
     {
         for (auto i = prices.begin(); i != prices.end(); i++)
         {
@@ -88,7 +87,7 @@ public:
         generateTickets();
     }
 
-    void displayAirplane()
+    void displayAirplane() const
     {
         cout << "Info about airplane " << flight_number << ":\n"
          << "* date: " << date << "\n"
@@ -102,16 +101,18 @@ public:
 
 class Passenger
 {
-    string name;
+    const string name;
     vector<string> tickets;
 };
+
+
 class FileReader
 {
-    string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
+    const string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
     
     vector<Airplane> airplanes;
 
-    void  MakeTableOfPrices(vector<string> range_and_prices, map<vector<int>,int> &prices)
+    void MakeTableOfPrices(vector<string> range_and_prices, map<vector<int>,int> &prices) 
     {
         for (int i = 0; i < range_and_prices.size(); i += 2)
         {
@@ -130,7 +131,7 @@ class FileReader
             prices[rows] = price;
         }
     }
-    void ReadFile()
+    void ReadFile() 
     {
         ifstream file(fileName);
         if (!file.is_open())
@@ -174,7 +175,7 @@ class FileReader
     }
 public:
 
-    FileReader() 
+    FileReader()  
     {
         ReadFile();
     }
@@ -191,12 +192,50 @@ class UserInput
 };
 class Commands
 {
+    string command;
 
+public:
+    void ChooseCommand() const
+    {
+        if (command == "check")
+        {
+            
+        }
+        else if (command == "view")
+        {
+
+        }
+        else if (command == "book")
+        {
+
+        }
+        else if (command == "return")
+        {
+
+        }
+        else if (command == "passenger")
+        {
+
+        }
+        else if (command == "flight")
+        {
+
+        }
+        else if (command == "help")
+        {
+
+        }
+        else
+        {
+            cout << "Unfortunately, we do not have this command in our arcenal! Try 'help' for more info:)";
+            return;
+        }
+    }
 };
 class ProgramEngine
 {
-    FileReader fileReader;
-    void function()
+    const FileReader fileReader;
+    void function() const
     {
         vector<Airplane> airplanes = fileReader.GetAirplanes();
         for (int i = 0; i < airplanes.size(); i++)
@@ -213,7 +252,7 @@ public:
 
 int main()
 {
-    ProgramEngine engine;
+    const ProgramEngine engine;
 
     cout<<"Helllo"<<endl;
 }
