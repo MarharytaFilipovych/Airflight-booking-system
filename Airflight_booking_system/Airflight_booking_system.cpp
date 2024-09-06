@@ -9,12 +9,24 @@ using namespace std;
 class Ticket
 {
 
-    string passenger_name;
-    char number_of_seat;
-    bool book_status;
-    Ticket(string name, char number, bool status) :
-        passenger_name(name), number_of_seat(number), book_status(status)
+    string number_of_seat;
+    bool booked;
+public:
+    Ticket(string number, bool status) :
+         number_of_seat(number), booked(status)
     {
+    }
+    void displayTicket()
+    {
+        if (booked)
+        {
+            cout << number_of_seat << ": booked" << endl;
+        }
+        else
+        {
+            cout << number_of_seat << ": free" << endl;
+
+        }
     }
 };
 class Airplane
@@ -23,6 +35,7 @@ class Airplane
     vector<char> seat_numbers;
     string date;
     string flight_number;
+    vector<Ticket> tickets;
 
     void getSeatNumbers()
     {
@@ -32,7 +45,28 @@ class Airplane
             seat_numbers.push_back('A' + i);
         }
     }
-    
+    void generateTickets()
+    {
+        for (int i = 0; i < number_of_seats_per_row; i++)
+        {
+            for (int j = 0; j < seat_numbers.size(); j++)
+            {
+                string ticket_number = to_string(i) + seat_numbers[j];
+                Ticket ticket(ticket_number, false);
+                tickets.push_back(ticket);
+            }
+           
+        }
+
+    }
+    void displayTickets()
+    {
+        for (int i = 0; i < tickets.size(); i++)
+        {
+            tickets[i].displayTicket();
+
+        }
+    }
 
     void PrintPrices()
     {
@@ -51,6 +85,7 @@ public:
     Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
     {
         getSeatNumbers();
+        generateTickets();
     }
 
     void displayAirplane()
@@ -65,6 +100,11 @@ public:
 
 };
 
+class Passenger
+{
+    string name;
+    vector<string> tickets;
+};
 class FileReader
 {
     string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
