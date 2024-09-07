@@ -57,7 +57,7 @@ class Airplane
     }
     void generateTickets()
     {
-        for (int i = 1; i < number_of_rows; i++)
+        for (int i = 1; i <= number_of_rows; i++)
         {
             for (int j = 0; j < seat_numbers.size(); j++)
             {
@@ -69,7 +69,7 @@ class Airplane
 
         }
     }
-    
+
     void displayTickets() const
     {
         for (int i = 0; i < tickets.size(); i++)
@@ -91,16 +91,16 @@ class Airplane
     }
 
 public:
-  
+
     const string date;
     const string flight_number;
 
 
-    Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows)    {
+    Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
         getSeatNumbers();
         generateTickets();
     }
-   
+
     void displayAirplane() const
     {
         cout << "Info about airplane " << flight_number << ":\n"
@@ -171,9 +171,9 @@ class FileReader
                 rows.push_back(i);
             }
             prices[rows] = price;
-            
-                number_of_rows = end;
-            
+
+            number_of_rows = end;
+
         }
     }
     void createPlanes(istringstream& this_line)
@@ -212,7 +212,7 @@ class FileReader
                 continue;
             }
             istringstream this_line(line);
-                
+
             createPlanes(this_line);
             number_of_records--;
         }
@@ -220,7 +220,7 @@ class FileReader
         file.close();
     }
 
-    
+
 public:
 
     FileReader()
@@ -280,33 +280,36 @@ class UserInput
         return all_of(data.begin(), data.end(), ::isalpha);
     }
 
-    void validateReturnView(vector<string>& data)
+    bool validateReturnView(vector<string>& data)
     {
         if (data.size() != 1 || !isDigit(data[0]))
         {
             cout << "Invalid input!" << endl;
-            return;
+            return false;
         }
+        return true;
+
     }
-    void validateFlightNumber(const string& number)
+    bool validateFlightNumber(const string& number)
     {
         if (number.length() != 5 || !isalpha(number[0]) || !isalpha(number[1]) || !isupper(number[0]) || !isupper(number[1]) || !isdigit(number[2]) || !isdigit(number[3]) || !isdigit(number[4])) {
             cout << "The number of your flight doesn't look correct:(" << endl;
-            return;
+            return false;
         }
+        return true;
     }
-    void validateDate(string date)
+    bool validateDate(string date)
     {
         if (date.length() != 10 || date[2] != '.' || date[5] != '.')
         {
             cout << "The format of the data is incorrect!" << endl;
-            return;
+            return false;
         }
         vector<string> parts = split(date, '.');
         if (!isDigit(parts[0]) || !isDigit(parts[1]) || !isDigit(parts[2]))
         {
             cout << "The format of the data is incorrect!" << endl;
-            return;
+            return false;
         }
         int day = stoi(parts[0]);
         int month = stoi(parts[1]);
@@ -314,7 +317,7 @@ class UserInput
         if (month > 12 || month < 1 || year < 2000)
         {
             cout << "Incorrect date numbers!" << endl;
-            return;
+            return false;
         }
         int daysInMonth = 31;
         if (month == 4 || month == 6 || month == 9 || month == 11) {
@@ -327,82 +330,106 @@ class UserInput
 
         if (day < 1 || day > daysInMonth) {
             cout << "The day is incorrect for the given month!" << endl;
-            return;
+            return false;
         }
-
+        return true;
     }
-    void validatePlace(string& place)
+    bool validatePlace(string& place)
     {
         if (!isdigit(place[0] || !isalpha(place[1]) || !isupper(place[1])))
         {
             cout << "There is no such place in the airplane :(" << endl;
-            return;
+            return false;
         }
+        return true;
     }
-    void validateBook(vector<string>& data)
+    bool validateBook(vector<string>& data)
     {
         if (data.size() < 4)
         {
             cout << "Incorrrect data for book command :(" << endl;
-            return;
+            return false;
         }
-        validateDate(data[0]);
-        validateFlightNumber(data[1]);
-        validatePlace(data[2]);
+        if (!validateDate(data[0]) || !validateFlightNumber(data[1]) || !validatePlace(data[2]))
+        {
+            return false;
+        }
+    
         for (int i = 3; i < data.size(); i++) {
             if (!isLetters(data[i])) {
                 cout << "You name should only contain letters, shouldn't it?" << endl;
-                return;
+                return false;
             }
         }
+        return true;
 
     }
-    void validateViewFlightOrCheck(vector<string>& data)
+    bool validateViewFlightOrCheck(vector<string>& data)
     {
         if (data.size() != 2)
         {
             cout << "Incorrrect data for book command :(" << endl;
-            return;
+            return false;
         }
-        validateDate(data[0]);
-        validateFlightNumber(data[1]);
+        if (!validateDate(data[0]) || !validateFlightNumber(data[1]) )
+        {
+            return false;
+        }       
+        return true;
     }
-    void validateUsername()
+    bool validateUsername()
     {
         if (!isLetters(userInput))
         {
             cout << "You name should only contain letters, shouldn't it?" << endl;
-            return;
+            return false;
         }
+        return true;
     }
     void validateCommand(string& command)
     {
+        bool commandFound = false;
+        list<string> type_view = { "username", "flight" };
         for (const auto& cmd : commands)
         {
             if (userInput.rfind(cmd, 0) == 0)
             {
                 command = cmd;
-                if (userInput.length() > cmd.length() + 1)
-                {
+                if (userInput.length() > cmd.length())
+                {            
                     userInput.erase(0, cmd.length() + 1);
-
+                    if (command == "view")
+                    {
+                        for(const auto& view_t: type_view)
+                        {
+                            if (userInput.rfind(view_t, 0) == 0)
+                            {
+                                command = command + " " + view_t;
+                                userInput.erase(0, view_t.length() + 1);
+                            }                            
+                        }                       
+                    }
                 }
                 else
                 {
-                    cout << "Bro, enter some parameters!" << endl;
-                    return;
+                    if (command != " help" && command != "exit")
+                    {
+                        cout << "Bro, enter some parameters!" << endl;
+                    }
                 }
+                commandFound = true;
                 break;
             }
-            else
-            {
-                cout << "Unfortunately, we do not have this command in our arcenal! Try 'help' for more info:)";
-                return;
-            }
+        }
+        if (!commandFound)
+        {
+            cout << "Unfortunately, we do not have this command in our arsenal! Try 'help' for more info :)" << endl;
+            return;
         }
     }
     Commands command_from_class;
 public:
+    bool exit = false;
 
     void TakeUserInput()
     {
@@ -418,18 +445,24 @@ public:
         else if (command == "exit")
         {
             cout << "Thank you for using our service! Have a good life!" << endl;
-            exit;
+            exit = true;
         }
         else if (command == "view username")
         {
-            validateUsername();
+            if (!validateUsername())
+            {
+                return;
+            }
             const string username = userInput;
         }
         else {
             vector<string> data = split(userInput, ' ');
             if (command == "check")
             {
-                validateViewFlightOrCheck(data);
+                if (!validateViewFlightOrCheck(data))
+                {
+                    return;
+                }
                 const string date = data[0];
                 const string flight_number = data[1];
                 command_from_class.Check(date, flight_number);
@@ -437,33 +470,37 @@ public:
             }
             else if (command == "view")
             {
-                validateReturnView(data);
+                if (!validateReturnView(data))
+                {
+                    return;
+                }
                 int id;
-
             }
             else if (command == "book")
             {
-                validateBook(data);
-
+                if (!validateBook(data))                   
+                {
+                    return;
+                }
             }
             else if (command == "return")
             {
-                validateReturnView(data);
+                if (!validateReturnView(data))
+                {
+                    return;
+                }
                 int id;
-
             }
             else if (command == "view flight")
             {
-                validateViewFlightOrCheck(data);
+                if (!validateViewFlightOrCheck(data))
+                {
+                    return;
+                }
             }
-
         }
-
-
         userInput.clear();
     }
-
-
 };
 
 class ProgramEngine
@@ -475,7 +512,10 @@ class ProgramEngine
 public:
     ProgramEngine()
     {
-        userInput.TakeUserInput();
+        while (!userInput.exit)
+        {
+            userInput.TakeUserInput();
+        }
     }
 };
 
