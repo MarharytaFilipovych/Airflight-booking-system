@@ -17,6 +17,7 @@ public:
     const string number_of_seat;
 
 
+
     Ticket(string number, bool status) :
         number_of_seat(number), booked(status)
     {
@@ -34,11 +35,17 @@ public:
         }
     }
 };
+
 class Airplane
 {
     const int number_of_seats_per_row;
     vector<char> seat_numbers;
     map<vector<Ticket>, int> prices_for_tickets;
+    const map<vector<int>, int> prices;
+    const int number_of_rows;
+    vector<Ticket> tickets;
+
+
 
     void getSeatNumbers()
     {
@@ -46,6 +53,20 @@ class Airplane
         for (int i = 0; i < number_of_seats_per_row; i++)
         {
             seat_numbers.push_back('A' + i);
+        }
+    }
+    void generateTickets()
+    {
+        for (int i = 1; i < number_of_rows; i++)
+        {
+            for (int j = 0; j < seat_numbers.size(); j++)
+            {
+                string ticket_number = to_string(i) + seat_numbers[j];
+                Ticket ticket(ticket_number, false);
+                tickets.push_back(ticket);
+
+            }
+
         }
     }
     
@@ -70,31 +91,16 @@ class Airplane
     }
 
 public:
-    map<vector<int>, int> prices;
+  
     const string date;
     const string flight_number;
-    vector<Ticket> tickets;
 
-    int number_of_rows;
 
-    Airplane(string day, string flight, int number_seats) : number_of_seats_per_row(number_seats), date(day), flight_number(flight)
-    {
+    Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows)    {
         getSeatNumbers();
+        generateTickets();
     }
-    void generateTickets()
-    {
-        for (int i = 1; i < number_of_rows; i++)
-        {
-            for (int j = 0; j < seat_numbers.size(); j++)
-            {
-                string ticket_number = to_string(i) + seat_numbers[j];
-                Ticket ticket(ticket_number, false);
-                tickets.push_back(ticket);
-
-            }
-
-        }
-    }
+   
     void displayAirplane() const
     {
         cout << "Info about airplane " << flight_number << ":\n"
@@ -170,7 +176,7 @@ class FileReader
             
         }
     }
-    void ReadFile()
+    void readFileAndCreatePlanes()
     {
         ifstream file(fileName);
         if (!file.is_open())
@@ -178,11 +184,9 @@ class FileReader
             cout << "Your file " << fileName << " could not be opened!" << endl;
             return;
         }
-
         int number_of_records;
         file >> number_of_records;
         file.ignore();
-
         string line;
         while (number_of_records > 0)
         {
@@ -193,31 +197,30 @@ class FileReader
             istringstream this_line(line);
             string date, flight_number;
             int seats_per_row;
-
-            this_line >> date >> flight_number >> seats_per_row;
-
-            Airplane airplane(date, flight_number, seats_per_row);
-
+            this_line >> date >> flight_number >> seats_per_row;         
             vector<string> range_and_prices;
             string range_and_price;
             while (this_line >> range_and_price)
             {
                 range_and_prices.push_back(range_and_price);
             }
-            MakeTableOfPrices(range_and_prices, airplane.prices, airplane.number_of_rows);
-            airplane.generateTickets();
+            int number_of_rows;
+            map<vector<int>, int> prices;
+            MakeTableOfPrices(range_and_prices, prices, number_of_rows);
+            Airplane airplane(date, flight_number, seats_per_row, prices, number_of_rows);
             airplanes.push_back(airplane);
-
             number_of_records--;
         }
-        cout << "The file was read successfully!" << endl;
+        //cout << "The file was read successfully!" << endl;
         file.close();
     }
+
+    
 public:
 
     FileReader()
     {
-        ReadFile();
+        readFileAndCreatePlanes();
     }
     const vector<Airplane>& GetAirplanes() const
     {
