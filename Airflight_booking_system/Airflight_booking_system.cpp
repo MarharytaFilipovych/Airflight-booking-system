@@ -176,7 +176,24 @@ class FileReader
             
         }
     }
-    void readFileAndCreatePlanes()
+    void createPlanes(istringstream& this_line)
+    {
+        string date, flight_number;
+        int seats_per_row;
+        this_line >> date >> flight_number >> seats_per_row;
+        vector<string> range_and_prices;
+        string range_and_price;
+        while (this_line >> range_and_price)
+        {
+            range_and_prices.push_back(range_and_price);
+        }
+        int number_of_rows;
+        map<vector<int>, int> prices;
+        MakeTableOfPrices(range_and_prices, prices, number_of_rows);
+        Airplane airplane(date, flight_number, seats_per_row, prices, number_of_rows);
+        airplanes.push_back(airplane);
+    }
+    void readFile()
     {
         ifstream file(fileName);
         if (!file.is_open())
@@ -195,20 +212,8 @@ class FileReader
                 continue;
             }
             istringstream this_line(line);
-            string date, flight_number;
-            int seats_per_row;
-            this_line >> date >> flight_number >> seats_per_row;         
-            vector<string> range_and_prices;
-            string range_and_price;
-            while (this_line >> range_and_price)
-            {
-                range_and_prices.push_back(range_and_price);
-            }
-            int number_of_rows;
-            map<vector<int>, int> prices;
-            MakeTableOfPrices(range_and_prices, prices, number_of_rows);
-            Airplane airplane(date, flight_number, seats_per_row, prices, number_of_rows);
-            airplanes.push_back(airplane);
+                
+            createPlanes(this_line);
             number_of_records--;
         }
         //cout << "The file was read successfully!" << endl;
@@ -220,7 +225,7 @@ public:
 
     FileReader()
     {
-        readFileAndCreatePlanes();
+        readFile();
     }
     const vector<Airplane>& GetAirplanes() const
     {
