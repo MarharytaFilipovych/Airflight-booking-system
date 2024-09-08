@@ -294,11 +294,11 @@ public:
     {
         Passenger passenger(username);
         addPassengers(passenger);
-        for (const Airplane& airplane : airplanes)
+        for (Airplane& airplane : airplanes)
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
             {
-                for ( Ticket ticket : airplane.tickets)
+                for ( Ticket& ticket : airplane.tickets)
                 {
                     if (ticket.place == place)
                     {
