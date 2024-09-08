@@ -8,74 +8,65 @@
 #include <algorithm>
 #include <unordered_set>
 #include <set>
-
+#include <unordered_map>
 using namespace std;
-class ID
-{
-    unordered_set<int> IDs;
-    const int N = 10000;
-public:
-
-    int generateID() {
-        int id;
-        do {
-            id = rand() % N;
-        } while (IDs.find(id) != IDs.end());
-
-        IDs.insert(id);
-        return id;
-    }
-
-};
-
  
 class Ticket
 {
-    ID id_generator;
 public:
-    const int id;
-    bool booked;
-    const string number_of_seat;
-    string ticket_owner;
-    const int price;
+    bool booked = false;
+    string place = "";
+    string owner = "";
+    int price = 0;
+    string flight = "";
+    string date = "";
 
-    Ticket(string number, bool status, int price_for_ticket)
-        : number_of_seat(number), booked(status), price(price_for_ticket), id(id_generator.generateID())
+    Ticket() = default;
+
+    Ticket(string number, bool status, int price_for_ticket, string date_of_flight, string flight_number)
+        : place(number), booked(status), price(price_for_ticket), flight(flight_number), date(date_of_flight)
     {
     }
-    bool operator==(const Ticket& other) const
-    {
-        return  id == other.id;
+
+    Ticket& operator=(const Ticket& other) {
+        if (this == &other) {
+           return *this;
+        }
+        this->price = other.price;
+        this->place = other.place;
+        this->booked = other.booked;
+        this->owner = other.owner;
+        this->flight = other.flight;
+        this->date = other.date;
+        return *this;
     }
-    bool operator<(const Ticket& other) const {
-        return id < other.id;
-    }
+
     void displayTicket() const
     {
         if (booked)
         {
-            cout << number_of_seat << ": booked" << ", price: " << price<< endl;
+            cout << place << ": booked, price: " << price << endl;
         }
         else
         {
-            cout << number_of_seat << ": free" << ", price: " << price << endl;
-
+            cout << place << ": free, price: " << price << endl;
         }
     }
 };
 
+
 class Airplane
 {
     const int number_of_seats_per_row;
-    vector<char> seat_numbers;
+    vector<char> seats;
     const map<vector<int>, int> prices;
     const int number_of_rows;
     void getSeatNumbers()
     {
-        seat_numbers.clear();
+        seats.clear();
         for (int i = 0; i < number_of_seats_per_row; i++)
         {
-            seat_numbers.push_back('A' + i);
+            seats.push_back('A' + i);
         }
     }
     int findTicketPrice(const string& ticket_number) const
@@ -90,16 +81,17 @@ class Airplane
 
             }
         }
+        return 0;
     }
     void generateTickets()
     {
         for (int i = 1; i <= number_of_rows; i++)
         {
-            for (int j = 0; j < seat_numbers.size(); j++)
+            for (int j = 0; j < seats.size(); j++)
             {
-                string ticket_number = to_string(i) + seat_numbers[j];
+                string ticket_number = to_string(i) + seats[j];
                 int price = findTicketPrice(ticket_number);
-                Ticket ticket(ticket_number, false, price);
+                Ticket ticket(ticket_number, false, price, flight_number, date);
                 tickets.push_back(ticket);
             }
         }
@@ -142,17 +134,13 @@ public:
             << "* number of seats per row: " << number_of_seats_per_row << "\n"
             << "* prices for rows: ";
         PrintPrices();
-    }
-   
-    
+    }      
 };
-
 
 class Passenger
 {
     const string name;
-    unordered_set<int> id_tickets;
-    
+    unordered_set<int> id_tickets;  
     
 public:
     Passenger(string username): name(username)
@@ -196,9 +184,7 @@ class FileReader
                 rows.push_back(i);
             }
             prices[rows] = price;
-
             number_of_rows = end;
-
         }
     }
     void createPlanes(istringstream& this_line)
@@ -241,7 +227,6 @@ class FileReader
             createPlanes(this_line);
             number_of_records--;
         }
-        //cout << "The file was read successfully!" << endl;
         file.close();
     }
 
@@ -258,31 +243,46 @@ public:
     }
 
 };
+class ID
+{
+    unordered_set<int> IDs;
+    const int N = 10000;
+public:
+
+    int generateID() {
+        int id;
+        do {
+            id = rand() % N;
+        } while (IDs.find(id) != IDs.end());
+
+        IDs.insert(id);
+        return id;
+    }
+
+};
 class Commands
 {
     const FileReader fileReader;
     vector<Airplane> airplanes = fileReader.GetAirplanes();
     set<Passenger> passengers;  
-    set<Ticket> bought_tickets;
-
+    unordered_map<int, Ticket> bought_tickets;
+    ID id_generator;
     void addPassengers(const Passenger& passenger)
     {
         passengers.insert(passenger); 
-    }
-   
-  
+    }  
 public:
     void Check(const string& date, const string& flight_number) const
     {
-        for (Airplane airplane : airplanes)
+        for (const Airplane& airplane : airplanes)
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
             {
-                for (Ticket ticket : airplane.tickets)
+                for (const Ticket& ticket : airplane.tickets)
                 {
                     if (!ticket.booked)
                     {
-                        cout << ticket.number_of_seat << ":" << to_string(ticket.price) + "$" << " ";
+                        cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
                     }
                 }
             }
@@ -294,25 +294,28 @@ public:
     {
         Passenger passenger(username);
         addPassengers(passenger);
-        for (Airplane airplane : airplanes)
+        for (const Airplane& airplane : airplanes)
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
             {
-                for (Ticket ticket : airplane.tickets)
+                for ( Ticket ticket : airplane.tickets)
                 {
-                    if (ticket.number_of_seat == place)
+                    if (ticket.place == place)
                     {
                         if (ticket.booked)
                         {
                             cout << "Sorry, this place is already booked!" << endl;
+                            break;
                         }
                         else
                         {
-                            passenger.addTicket(ticket.id);
-                            cout << "Confirmed with ID " << ticket.id << endl;
+                            int id = id_generator.generateID();
+                            passenger.addTicket(id);
+                            cout << "Confirmed with ID " << id << endl;
                             ticket.booked = true;
-                            ticket.ticket_owner = username;
-                            bought_tickets.insert(ticket);
+                            ticket.owner = username;
+                            bought_tickets[id] = ticket;
+                            break;
                         }
                     }
                 }
@@ -322,22 +325,36 @@ public:
 
     void Return(int id)
     {
-        bool id_found = false;
-        for (auto& ticket : bought_tickets)
+        auto it = bought_tickets.find(id);
+        if (it != bought_tickets.end())
         {
-            if (ticket.id == id)
-            {
-                id_found = true;
-                cout << "Confirmed " << ticket.price << "$ refund for " << ticket.ticket_owner << endl;
-                break; 
-            }
+            Ticket& ticket = it->second;
+            
+            cout << "Confirmed " << ticket.price << "$ refund for " << ticket.owner << endl;
+            ticket.booked = false;
+            ticket.owner = ""; 
+            bought_tickets.erase(it);
         }
-        if (!id_found)
+        else
         {
             cout << "Hmm... There is no id " << id << ". Therefore, no money back))))" << endl;
         }
     }
 
+    void View(int id)
+    {
+        auto it = bought_tickets.find(id);
+        if (it != bought_tickets.end())
+        {
+           Ticket& ticket = it->second;
+           cout << "Flight " << ticket.flight << ", " << ticket.date << ", " << ticket.place << ", " << ticket.owner << endl;
+            
+        }
+        else
+        {
+            cout << "The ticket with id " << id << " was not booked." << endl;
+        }
+    }
 
 };
 class UserInput
@@ -421,7 +438,7 @@ class UserInput
     }
     bool validatePlace(string& place)
     {
-        for (int i = 0; i < place.length() - 1; i++)
+        for (size_t i = 0; i < place.length() - 1; i++)
         {
             if (!isdigit(place[i]))
             {
@@ -570,7 +587,8 @@ public:
                 {
                     return;
                 }
-                int id;
+                const int id = stoi(data[0]);
+                command_from_class.View(id);
             }
             else if (command == "book")
             {
