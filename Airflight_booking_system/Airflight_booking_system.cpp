@@ -322,16 +322,19 @@ public:
 
     void Return(int id)
     {
-        for (Ticket ticket : bought_tickets)
+        bool id_found = false;
+        for (auto& ticket : bought_tickets)
         {
             if (ticket.id == id)
             {
+                id_found = true;
                 cout << "Confirmed " << ticket.price << "$ refund for " << ticket.ticket_owner << endl;
+                break; 
             }
-            else
-            {
-                cout << "Hmm... There is no id " << id<<".Therefore, no money back))))" << endl;
-            }
+        }
+        if (!id_found)
+        {
+            cout << "Hmm... There is no id " << id << ". Therefore, no money back))))" << endl;
         }
     }
 
