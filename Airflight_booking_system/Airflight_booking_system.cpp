@@ -24,9 +24,7 @@ public:
     Ticket() = default;
 
     Ticket(string number, bool status, int price_for_ticket, string date_of_flight, string flight_number)
-        : place(number), booked(status), price(price_for_ticket), flight(flight_number), date(date_of_flight)
-    {
-    }
+        : place(number), booked(status), price(price_for_ticket), flight(flight_number), date(date_of_flight){}
 
     Ticket& operator=(const Ticket& other) {
         if (this == &other) {
@@ -58,7 +56,7 @@ public:
 class Airplane
 {
     const int number_of_seats_per_row;
-    vector<char> seats;
+    unordered_set<char> seats;
     const map<vector<int>, int> prices;
     const int number_of_rows;
     void getSeatNumbers()
@@ -66,7 +64,7 @@ class Airplane
         seats.clear();
         for (int i = 0; i < number_of_seats_per_row; i++)
         {
-            seats.push_back('A' + i);
+            seats.insert('A' + i);
         }
     }
     int findTicketPrice(const string& ticket_number) const
@@ -87,9 +85,9 @@ class Airplane
     {
         for (int i = 1; i <= number_of_rows; i++)
         {
-            for (int j = 0; j < seats.size(); j++)
+            for (const char seat : seats)
             {
-                string ticket_number = to_string(i) + seats[j];
+                string ticket_number = to_string(i) + seat;
                 int price = findTicketPrice(ticket_number);
                 Ticket ticket(ticket_number, false, price, flight_number, date);
                 tickets.push_back(ticket);
@@ -99,9 +97,9 @@ class Airplane
 
     void displayTickets() const
     {
-        for (int i = 0; i < tickets.size(); i++)
+        for (const Ticket& ticket : tickets)
         {
-            tickets[i].displayTicket();
+            ticket.displayTicket();
 
         }
     }
@@ -137,28 +135,6 @@ public:
     }      
 };
 
-class Passenger
-{
-    const string name;
-    unordered_set<int> id_tickets;  
-    
-public:
-    Passenger(string username): name(username)
-    {
-    }
-    void addTicket(const int& id_ticket)
-    {
-        id_tickets.insert(id_ticket);
-    }
-    bool operator==(const Passenger& other) const
-    {
-        return  name == other.name;
-    }
-    bool operator<(const Passenger& other) const {
-        return name < other.name;
-    }
-    
-};
 
 
 class FileReader
@@ -248,6 +224,10 @@ class ID
     unordered_set<int> IDs;
     const int N = 10000;
 public:
+    ID()
+    {
+        srand(time(nullptr));
+    }
 
     int generateID() {
         int id;
@@ -264,13 +244,11 @@ class Commands
 {
     const FileReader fileReader;
     vector<Airplane> airplanes = fileReader.GetAirplanes();
-    set<Passenger> passengers;  
     unordered_map<int, Ticket> bought_tickets;
     ID id_generator;
-    void addPassengers(const Passenger& passenger)
-    {
-        passengers.insert(passenger); 
-    }  
+
+    unordered_map<string, unordered_set<int>> passengers;
+    
 public:
     void Check(const string& date, const string& flight_number) const
     {
@@ -292,8 +270,6 @@ public:
 
     void Book(const string& date, const string& flight_number, const string& place, const string& username)
     {
-        Passenger passenger(username);
-        addPassengers(passenger);
         for (Airplane& airplane : airplanes)
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
@@ -310,7 +286,7 @@ public:
                         else
                         {
                             int id = id_generator.generateID();
-                            passenger.addTicket(id);
+                            passengers[username].insert(id);
                             cout << "Confirmed with ID " << id << endl;
                             ticket.booked = true;
                             ticket.owner = username;
@@ -332,8 +308,16 @@ public:
             
             cout << "Confirmed " << ticket.price << "$ refund for " << ticket.owner << endl;
             ticket.booked = false;
+            auto it_user = passengers.find(ticket.owner);
+            unordered_set<int>& ids = it_user->second;
+            ids.erase(id);
+            if (ids.empty())
+            {
+                passengers.erase(it_user);
+            }           
             ticket.owner = ""; 
             bought_tickets.erase(it);
+           
         }
         else
         {
@@ -356,11 +340,35 @@ public:
         }
     }
 
+    void viewUsername(const string& username)
+    {
+        auto it = passengers.find(username);
+        if (it != passengers.end())
+        {
+            const unordered_set<int>& ids = it->second;
+            int i = 1;
+            for (const int id : ids)
+            {
+                cout << i << ". ";
+                View(id);
+            }
+        }
+        else
+        {
+            cout << "Passenger not found." << endl;
+        }
+    }
+
+    void viewFlight(const string& date, const string& flight_number)const
+    {
+
+    }
+
 };
 class UserInput
 {
     string userInput;
-    const list<string> commands = { "check", "view", "book", "return", "help", "exit", "view username", "view flight" };
+    const unordered_set<string> commands = { "check", "view", "book", "return", "help", "exit", "view username", "view flight" };
     vector<string> split(string& data, char delimiter)
     {
         stringstream ss(data);
@@ -490,6 +498,10 @@ class UserInput
         }       
         return true;
     }
+    void removeSpaces(string& username)
+    {
+       username.erase(remove(username.begin(), username.end(), ' '), username.end());
+    }
     bool validateUsername()
     {
         if (!isLetters(userInput))
@@ -566,7 +578,9 @@ public:
             {
                 return;
             }
+            removeSpaces(userInput);
             const string username = userInput;
+            command_from_class.viewUsername(username);
         }
         else {
             vector<string> data = split(userInput, ' ');
@@ -602,7 +616,7 @@ public:
                 string username = "";
                 for (int i = 3; i < data.size(); i++)
                 {
-                    username = username + " " + data[i];
+                    username += data[i];
                 }
                 command_from_class.Book(date, flight_number, place, username);
 
