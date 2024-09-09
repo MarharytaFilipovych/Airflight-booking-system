@@ -24,7 +24,7 @@ public:
     Ticket() = default;
 
     Ticket(string number, bool status, int price_for_ticket, string date_of_flight, string flight_number)
-        : place(number), booked(status), price(price_for_ticket), flight(flight_number), date(date_of_flight){}
+        : place(number),  price(price_for_ticket), flight(flight_number), date(date_of_flight){}
 
     Ticket& operator=(const Ticket& other) {
         if (this == &other) {
@@ -38,7 +38,18 @@ public:
         this->date = other.date;
         return *this;
     }
+    bool operator<(const Ticket& other) const {
+        return place < other.place; 
+    }
 
+    bool operator==(const Ticket& other) const {
+        return place == other.place &&
+            booked == other.booked &&
+            owner == other.owner &&
+            price == other.price &&
+            flight == other.flight &&
+            date == other.date;
+    }
     void displayTicket() const
     {
         if (booked)
@@ -90,7 +101,7 @@ class Airplane
                 string ticket_number = to_string(i) + seat;
                 int price = findTicketPrice(ticket_number);
                 Ticket ticket(ticket_number, false, price, flight_number, date);
-                tickets.push_back(ticket);
+                tickets.insert(ticket);
             }
         }
     }
@@ -118,7 +129,9 @@ public:
 
     const string date;
     const string flight_number;
-    vector<Ticket> tickets;
+    set<Ticket> tickets;
+    set<Ticket> booked_rickets;
+
 
     Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
         getSeatNumbers();
@@ -258,10 +271,9 @@ public:
             {
                 for (const Ticket& ticket : airplane.tickets)
                 {
-                    if (!ticket.booked)
-                    {
+                    
                         cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
-                    }
+                    
                 }
             }
         }
@@ -270,31 +282,44 @@ public:
 
     void Book(const string& date, const string& flight_number, const string& place, const string& username)
     {
+        bool found_place = false;
         for (Airplane& airplane : airplanes)
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
             {
-                for ( Ticket& ticket : airplane.tickets)
+                auto it = airplane.tickets.begin();
+                while (it != airplane.tickets.end())
                 {
-                    if (ticket.place == place)
+                    if (it->place == place)
                     {
-                        if (ticket.booked)
-                        {
-                            cout << "Sorry, this place is already booked!" << endl;
-                            break;
-                        }
-                        else
-                        {
+                        found_place = true;
                             int id = id_generator.generateID();
                             passengers[username].insert(id);
                             cout << "Confirmed with ID " << id << endl;
+
+                            Ticket ticket = *it;
                             ticket.booked = true;
                             ticket.owner = username;
+
                             bought_tickets[id] = ticket;
-                            break;
-                        }
+                            airplane.booked_rickets.insert(ticket);
+
+                            it = airplane.tickets.erase(it); 
+                            return; 
+                        
+                    }
+                    else
+                    {
+                        it++; 
                     }
                 }
+                if (!found_place)
+                {
+                    cout << "Sorry, this place is already booked!" << endl;
+                    return;
+                }
+                
+ 
             }
         }
     }
@@ -317,6 +342,15 @@ public:
             }           
             ticket.owner = ""; 
             bought_tickets.erase(it);
+            for (Airplane& airplane : airplanes)
+            {
+                if (airplane.date == ticket.date && airplane.flight_number == ticket.flight)
+                {
+                    airplane.booked_rickets.erase(ticket);
+                    airplane.tickets.insert(ticket);
+                    
+                }
+            }
            
         }
         else
@@ -361,7 +395,19 @@ public:
 
     void viewFlight(const string& date, const string& flight_number)const
     {
+        for (const Airplane& airplane : airplanes)
+        {
+            if (airplane.flight_number == flight_number && airplane.date == date)
+            {
+                for (const Ticket& ticket : airplane.booked_rickets)
+                {
 
+                    cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
+
+                }
+            }
+        }
+        cout << endl;
     }
 
 };
