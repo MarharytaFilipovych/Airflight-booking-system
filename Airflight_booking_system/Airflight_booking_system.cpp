@@ -32,7 +32,6 @@ public:
         }
         this->price = other.price;
         this->place = other.place;
-        this->booked = other.booked;
         this->owner = other.owner;
         this->flight = other.flight;
         this->date = other.date;
@@ -50,6 +49,13 @@ public:
             flight == other.flight &&
             date == other.date;
     }
+    struct HashFunction
+    {
+        size_t operator()(const Ticket& ticket) const
+        {
+            return hash<string>()(ticket.date) ^ (hash<string>()(ticket.place) << 1) ^ (hash<string>()(ticket.flight) << 2) ^ (hash<string>()(ticket.owner) << 3);
+        }
+    };
     void displayTicket() const
     {
         if (booked)
@@ -129,8 +135,8 @@ public:
 
     const string date;
     const string flight_number;
-    set<Ticket> tickets;
-    set<Ticket> booked_rickets;
+    unordered_set<Ticket, Ticket::HashFunction> tickets;
+    unordered_set<Ticket, Ticket::HashFunction> booked_tickets;
 
 
     Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
@@ -292,19 +298,18 @@ public:
                 {
                     if (it->place == place)
                     {
-                        found_place = true;
+                            found_place = true;
                             int id = id_generator.generateID();
                             passengers[username].insert(id);
                             cout << "Confirmed with ID " << id << endl;
 
                             Ticket ticket = *it;
-                            ticket.booked = true;
                             ticket.owner = username;
 
                             bought_tickets[id] = ticket;
-                            airplane.booked_rickets.insert(ticket);
+                            airplane.booked_tickets.insert(ticket);
 
-                            it = airplane.tickets.erase(it); 
+                            airplane.tickets.erase(*it); 
                             return; 
                         
                     }
@@ -332,7 +337,6 @@ public:
             Ticket& ticket = it->second;
             
             cout << "Confirmed " << ticket.price << "$ refund for " << ticket.owner << endl;
-            ticket.booked = false;
             auto it_user = passengers.find(ticket.owner);
             unordered_set<int>& ids = it_user->second;
             ids.erase(id);
@@ -346,7 +350,7 @@ public:
             {
                 if (airplane.date == ticket.date && airplane.flight_number == ticket.flight)
                 {
-                    airplane.booked_rickets.erase(ticket);
+                    airplane.booked_tickets.erase(ticket);
                     airplane.tickets.insert(ticket);
                     
                 }
@@ -399,7 +403,7 @@ public:
         {
             if (airplane.flight_number == flight_number && airplane.date == date)
             {
-                for (const Ticket& ticket : airplane.booked_rickets)
+                for (const Ticket& ticket : airplane.booked_tickets)
                 {
 
                     cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
@@ -683,6 +687,10 @@ public:
                 {
                     return;
                 }
+                const string date = data[0];
+                const string flight_number = data[1];
+                command_from_class.viewFlight(date, flight_number);
+
             }
         }
         userInput.clear();
