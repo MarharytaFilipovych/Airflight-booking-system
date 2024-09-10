@@ -14,7 +14,6 @@ using namespace std;
 class Ticket
 {
 public:
-    bool booked = false;
     string place = "";
     string owner = "";
     int price = 0;
@@ -23,8 +22,9 @@ public:
 
     Ticket() = default;
 
-    Ticket(string number, bool status, int price_for_ticket, string date_of_flight, string flight_number)
-        : place(number),  price(price_for_ticket), flight(flight_number), date(date_of_flight){}
+    Ticket(const string& number, const int price_for_ticket, const string& date_of_flight, const string& flight_number)
+        : place(number), price(price_for_ticket), flight(flight_number), date(date_of_flight) {}
+
 
     Ticket& operator=(const Ticket& other) {
         if (this == &other) {
@@ -38,34 +38,10 @@ public:
         return *this;
     }
     bool operator<(const Ticket& other) const {
-        return place < other.place; 
-    }
-
-    bool operator==(const Ticket& other) const {
-        return place == other.place &&
-            booked == other.booked &&
-            owner == other.owner &&
-            price == other.price &&
-            flight == other.flight &&
-            date == other.date;
-    }
-    struct HashFunction
-    {
-        size_t operator()(const Ticket& ticket) const
-        {
-            return hash<string>()(ticket.date) ^ (hash<string>()(ticket.place) << 1) ^ (hash<string>()(ticket.flight) << 2) ^ (hash<string>()(ticket.owner) << 3);
+        if (price == other.price) {
+            return place < other.place;  
         }
-    };
-    void displayTicket() const
-    {
-        if (booked)
-        {
-            cout << place << ": booked, price: " << price << endl;
-        }
-        else
-        {
-            cout << place << ": free, price: " << price << endl;
-        }
+        return price < other.price;  
     }
 };
 
@@ -76,6 +52,7 @@ class Airplane
     unordered_set<char> seats;
     const map<vector<int>, int> prices;
     const int number_of_rows;
+
     void getSeatNumbers()
     {
         seats.clear();
@@ -84,7 +61,7 @@ class Airplane
             seats.insert('A' + i);
         }
     }
-    int findTicketPrice(const string& ticket_number) const
+    const int findTicketPrice(const string& ticket_number) const
     {
         const int tikcet_row = stoi(ticket_number.substr(0, ticket_number.length() - 1));
         for (const auto& price_itself : prices)
@@ -106,18 +83,9 @@ class Airplane
             {
                 string ticket_number = to_string(i) + seat;
                 int price = findTicketPrice(ticket_number);
-                Ticket ticket(ticket_number, false, price, flight_number, date);
+                Ticket ticket(ticket_number, price, flight_number, date);
                 tickets.insert(ticket);
             }
-        }
-    }
-
-    void displayTickets() const
-    {
-        for (const Ticket& ticket : tickets)
-        {
-            ticket.displayTicket();
-
         }
     }
 
@@ -135,11 +103,11 @@ public:
 
     const string date;
     const string flight_number;
-    unordered_set<Ticket, Ticket::HashFunction> tickets;
-    unordered_set<Ticket, Ticket::HashFunction> booked_tickets;
+    set<Ticket> tickets;
+    set<Ticket> booked_tickets;
 
 
-    Airplane(string day, string flight, int number_seats, map<vector<int>, int> prices_for_rows, int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
+    Airplane(const string& day, const string& flight, const int number_seats, const map<vector<int>, int>& prices_for_rows, const int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
         getSeatNumbers();
         generateTickets();
     }
@@ -162,7 +130,7 @@ class FileReader
 
     vector<Airplane> airplanes;
 
-    void MakeTableOfPrices(vector<string> range_and_prices, map<vector<int>, int>& prices, int& number_of_rows)
+    void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int number_of_rows) const
     {
         for (int i = 0; i < range_and_prices.size(); i += 2)
         {
@@ -182,7 +150,7 @@ class FileReader
             number_of_rows = end;
         }
     }
-    void createPlanes(istringstream& this_line)
+    void createPlanes(istringstream& this_line) 
     {
         string date, flight_number;
         int seats_per_row;
@@ -248,7 +216,7 @@ public:
         srand(time(nullptr));
     }
 
-    int generateID() {
+    const int generateID() {
         int id;
         do {
             id = rand() % N;
@@ -265,7 +233,6 @@ class Commands
     vector<Airplane> airplanes = fileReader.GetAirplanes();
     unordered_map<int, Ticket> bought_tickets;
     ID id_generator;
-
     unordered_map<string, unordered_set<int>> passengers;
     
 public:
@@ -286,7 +253,7 @@ public:
         cout << endl;
     }
 
-    void Book(const string& date, const string& flight_number, const string& place, const string& username)
+    void Book(const string& date, const string& flight_number, const string& place, const string& username) 
     {
         bool found_place = false;
         for (Airplane& airplane : airplanes)
@@ -302,16 +269,12 @@ public:
                             int id = id_generator.generateID();
                             passengers[username].insert(id);
                             cout << "Confirmed with ID " << id << endl;
-
                             Ticket ticket = *it;
                             ticket.owner = username;
-
                             bought_tickets[id] = ticket;
                             airplane.booked_tickets.insert(ticket);
-
                             airplane.tickets.erase(*it); 
-                            return; 
-                        
+                            return;                      
                     }
                     else
                     {
@@ -322,9 +285,7 @@ public:
                 {
                     cout << "Sorry, this place is already booked!" << endl;
                     return;
-                }
-                
- 
+                } 
             }
         }
     }
@@ -351,11 +312,9 @@ public:
                 if (airplane.date == ticket.date && airplane.flight_number == ticket.flight)
                 {
                     airplane.booked_tickets.erase(ticket);
-                    airplane.tickets.insert(ticket);
-                    
+                    airplane.tickets.insert(ticket);                   
                 }
-            }
-           
+            } 
         }
         else
         {
@@ -369,8 +328,7 @@ public:
         if (it != bought_tickets.end())
         {
            Ticket& ticket = it->second;
-           cout << "Flight " << ticket.flight << ", " << ticket.date << ", " << ticket.place << ", " << ticket.owner << endl;
-            
+           cout << "Flight " << ticket.flight << ", " << ticket.date << ", " << ticket.place << ", " << ticket.owner << endl;        
         }
         else
         {
@@ -406,20 +364,18 @@ public:
                 for (const Ticket& ticket : airplane.booked_tickets)
                 {
 
-                    cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
-
+                    cout << ticket.place << ", " << ticket.owner << to_string(ticket.price) + "$" << " ";
                 }
             }
         }
         cout << endl;
     }
-
 };
 class UserInput
 {
     string userInput;
     const unordered_set<string> commands = { "check", "view", "book", "return", "help", "exit", "view username", "view flight" };
-    vector<string> split(string& data, char delimiter)
+    const vector<string> split(string& data, char delimiter) const
     {
         stringstream ss(data);
         string token;
@@ -440,7 +396,7 @@ class UserInput
         return all_of(data.begin(), data.end(), ::isalpha);
     }
 
-    bool validateReturnView(vector<string>& data)
+    bool validateReturnView(const vector<string>& data) const
     {
         if (data.size() != 1 || !isDigit(data[0]))
         {
@@ -450,7 +406,7 @@ class UserInput
         return true;
 
     }
-    bool validateFlightNumber(const string& number)
+    bool validateFlightNumber(const string& number) const
     {
         if (number.length() != 5 || !isalpha(number[0]) || !isalpha(number[1]) || !isupper(number[0]) || !isupper(number[1]) || !isdigit(number[2]) || !isdigit(number[3]) || !isdigit(number[4])) {
             cout << "The number of your flight doesn't look correct:(" << endl;
@@ -458,7 +414,7 @@ class UserInput
         }
         return true;
     }
-    bool validateDate(string date)
+    bool validateDate(string& date) const
     {
         if (date.length() != 10 || date[2] != '.' || date[5] != '.')
         {
@@ -494,7 +450,7 @@ class UserInput
         }
         return true;
     }
-    bool validatePlace(string& place)
+    bool validatePlace(const string& place) const
     {
         for (size_t i = 0; i < place.length() - 1; i++)
         {
@@ -514,7 +470,7 @@ class UserInput
 
         return true;
     }
-    bool validateBook(vector<string>& data)
+    bool validateBook( vector<string>& data) const
     {
         if (data.size() < 4)
         {
@@ -535,7 +491,7 @@ class UserInput
         return true;
 
     }
-    bool validateViewFlightOrCheck(vector<string>& data)
+    bool validateViewFlightOrCheck(vector<string>& data) const
     {
         if (data.size() != 2)
         {
@@ -548,11 +504,11 @@ class UserInput
         }       
         return true;
     }
-    void removeSpaces(string& username)
+    void removeSpaces(string& username) const
     {
        username.erase(remove(username.begin(), username.end(), ' '), username.end());
     }
-    bool validateUsername()
+    bool validateUsername() const
     {
         if (!isLetters(userInput))
         {
@@ -561,7 +517,7 @@ class UserInput
         }
         return true;
     }
-    void validateCommand(string& command)
+    void validateCommand(string& command) 
     {
         bool commandFound = false;
         list<string> type_view = { "username", "flight" };
@@ -602,7 +558,7 @@ class UserInput
             return;
         }
     }
-    Commands command_from_class;
+    Commands existing_commands;
 public:
     bool exit = false;
 
@@ -630,7 +586,7 @@ public:
             }
             removeSpaces(userInput);
             const string username = userInput;
-            command_from_class.viewUsername(username);
+            existing_commands.viewUsername(username);
         }
         else {
             vector<string> data = split(userInput, ' ');
@@ -642,7 +598,7 @@ public:
                 }
                 const string date = data[0];
                 const string flight_number = data[1];
-                command_from_class.Check(date, flight_number);
+                existing_commands.Check(date, flight_number);
 
             }
             else if (command == "view")
@@ -652,7 +608,7 @@ public:
                     return;
                 }
                 const int id = stoi(data[0]);
-                command_from_class.View(id);
+                existing_commands.View(id);
             }
             else if (command == "book")
             {
@@ -668,7 +624,7 @@ public:
                 {
                     username += data[i];
                 }
-                command_from_class.Book(date, flight_number, place, username);
+                existing_commands.Book(date, flight_number, place, username);
 
 
             }
@@ -679,7 +635,7 @@ public:
                     return;
                 }
                 int id = stoi(data[0]);
-                command_from_class.Return(id);
+                existing_commands.Return(id);
             }
             else if (command == "view flight")
             {
@@ -689,7 +645,7 @@ public:
                 }
                 const string date = data[0];
                 const string flight_number = data[1];
-                command_from_class.viewFlight(date, flight_number);
+                existing_commands.viewFlight(date, flight_number);
 
             }
         }
@@ -700,8 +656,6 @@ public:
 class ProgramEngine
 {
     UserInput userInput;
-
-
 
 public:
     ProgramEngine()
@@ -716,5 +670,4 @@ public:
 int main()
 {
     const ProgramEngine engine;
-
 }
