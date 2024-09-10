@@ -83,8 +83,8 @@ class Airplane
             {
                 string ticket_number = to_string(i) + seat;
                 int price = findTicketPrice(ticket_number);
-                Ticket ticket(ticket_number, price, flight_number, date);
-                tickets.insert(ticket);
+                Ticket ticket(ticket_number, price, date, flight_number);
+                tickets[ticket.place] = ticket;
             }
         }
     }
@@ -103,8 +103,8 @@ public:
 
     const string date;
     const string flight_number;
-    set<Ticket> tickets;
-    set<Ticket> booked_tickets;
+    unordered_map<string,Ticket> tickets;
+    unordered_map<string, Ticket> booked_tickets;
 
     Airplane() = default;
 
@@ -296,16 +296,16 @@ public:
             const Airplane& airplane = it->second;
             if (check)
             {
-                for (const Ticket& ticket : airplane.tickets)
+                for (auto i = airplane.tickets.begin(); i != airplane.tickets.end(); i++)
                 {
-                    cout << ticket.place << ":" << to_string(ticket.price) + "$" << " ";
+                    cout << i->second.place << ":" << to_string(i->second.price) + "$" << " ";
                 }
             }
             else
             {
-                for (const Ticket& ticket : airplane.booked_tickets)
+                for (auto i = airplane.booked_tickets.begin(); i != airplane.booked_tickets.end(); i++)
                 {
-                    cout << ticket.place << ", " << ticket.owner << to_string(ticket.price) + "$" << " ";
+                    cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " ";
                 }
             }           
             cout << endl;  
@@ -318,39 +318,30 @@ public:
 
     void Book(const string& date, const string& flight_number, const string& place, const string& username)
     {
-        bool found_place = false;
         string key = date + flight_number;
         auto airplane_it = airplanes.find(key);
         if (airplane_it != airplanes.end())
         {
-            Airplane& airplane = airplane_it->second; 
-            auto it = airplane.tickets.begin();
-            while (it != airplane.tickets.end())
+            Airplane& airplane = airplane_it->second;
+            auto it = airplane.tickets.find(place);
+            if (it != airplane.tickets.end())
             {
-                if (it->place == place)
-                {
-                    found_place = true;
-                    int id = id_generator.generateID();
-                    passengers[username].insert(id);
-                    cout << "Confirmed with ID " << id << endl;
-                    Ticket ticket = *it;
-                    ticket.owner = username;
-                    bought_tickets[id] = ticket;
-                    airplane.booked_tickets.insert(ticket);
-                    airplane.tickets.erase(it);
-                    return;
-                }
-                else
-                {
-                    it++;
-                }
+                int id = id_generator.generateID();
+                passengers[username].insert(id);
+                cout << "Confirmed with ID " << id << endl;
+                Ticket& ticket = it->second;
+                ticket.owner = username;
+                bought_tickets[id] = ticket;
+                airplane.booked_tickets[ticket.place] = ticket;
+                airplane.tickets.erase(it);
+                return;
             }
-            if (!found_place)
+            else
             {
                 cout << "Sorry, this place is already booked!" << endl;
                 return;
             }
-        }
+        }             
         else
         {
             cout << "Flight not found!" << endl;
@@ -379,15 +370,16 @@ public:
             }
 
             ticket.owner = "";
-            bought_tickets.erase(it);
 
             auto airplane_it = airplanes.find(key);
             if (airplane_it != airplanes.end())
             {
                 Airplane& airplane = airplane_it->second; 
-                airplane.booked_tickets.erase(ticket);
-                airplane.tickets.insert(ticket);
+                airplane.booked_tickets.erase(ticket.place);
+                airplane.tickets[ticket.place]=ticket;
             }
+            bought_tickets.erase(it->first);
+
         }
         else
         {
@@ -420,6 +412,7 @@ public:
             {
                 cout << i << ". ";
                 View(id);
+                i++;
             }
         }
         else
