@@ -25,24 +25,6 @@ public:
     Ticket(const string& number, const int price_for_ticket, const string& date_of_flight, const string& flight_number)
         : place(number), price(price_for_ticket), flight(flight_number), date(date_of_flight) {}
 
-
-    Ticket& operator=(const Ticket& other) {
-        if (this == &other) {
-           return *this;
-        }
-        this->price = other.price;
-        this->place = other.place;
-        this->owner = other.owner;
-        this->flight = other.flight;
-        this->date = other.date;
-        return *this;
-    }
-    bool operator<(const Ticket& other) const {
-        if (price == other.price) {
-            return place < other.place;  
-        }
-        return price < other.price;  
-    }
 };
 
 
@@ -99,6 +81,15 @@ class Airplane
         cout << endl;
 
     }      
+    void displayAirplane() const
+    {
+        cout << "Info about airplane " << flight_number << ":\n"
+            << "* date: " << date << "\n"
+            << "* number of seats per row: " << number_of_seats_per_row << "\n"
+            << "* prices for rows: ";
+        PrintPrices();
+    }
+
 public:
 
     const string date;
@@ -111,52 +102,7 @@ public:
     Airplane(const string& day, const string& flight, const int number_seats, const map<vector<int>, int>& prices_for_rows, const int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
         getSeatNumbers();
         generateTickets();
-    }
-
-    void displayAirplane() const
-    {
-        cout << "Info about airplane " << flight_number << ":\n"
-            << "* date: " << date << "\n"
-            << "* number of seats per row: " << number_of_seats_per_row << "\n"
-            << "* prices for rows: ";
-        PrintPrices();
-    }  
-    bool operator==(const Airplane& airplane) const
-    {
-        return date == airplane.date &&
-            flight_number == airplane.flight_number &&
-            number_of_seats_per_row == airplane.number_of_seats_per_row &&
-            number_of_rows == airplane.number_of_rows &&
-            prices == airplane.prices;
-    }
-
-
-    struct HashFunction
-    {
-        size_t operator()(const Airplane& airplane) const
-        {
-
-            size_t hash_value = 17;
-            hash_value = hash_value * 31 + std::hash<std::string>()(airplane.date);
-            hash_value = hash_value * 31 + std::hash<std::string>()(airplane.flight_number);
-            hash_value = hash_value * 31 + std::hash<int>()(airplane.number_of_seats_per_row);
-            hash_value = hash_value * 31 + std::hash<int>()(airplane.number_of_rows);
-
-            return hash_value;
-
-        }
-    };
-    Airplane(const Airplane& other)
-        : number_of_seats_per_row(other.number_of_seats_per_row),
-        seats(other.seats),
-        prices(other.prices),
-        number_of_rows(other.number_of_rows),
-        date(other.date),
-        flight_number(other.flight_number),
-        tickets(other.tickets),
-        booked_tickets(other.booked_tickets)
-    {
-    }
+    }   
 
     Airplane& operator=(const Airplane& other)
     {
@@ -166,13 +112,27 @@ public:
             prices = other.prices;
             tickets = other.tickets;
             booked_tickets = other.booked_tickets;
+            number_of_rows = other.number_of_rows;
+            number_of_seats_per_row = other.number_of_seats_per_row;
         }
         return *this;
     }
+    void displayBookedTickets() const
+    {
+        for (auto i = booked_tickets.begin(); i != booked_tickets.end(); i++)
+        {
+            cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " "<< endl;
+        }
+    }
+    void displayAvailableTickets() const
+    {
+        for (auto i = tickets.begin(); i != tickets.end(); i++)
+        {
+            cout << i->second.place << ":" << to_string(i->second.price) + "$" << " ";
+        }
+    }
 
 };
-
-
 
 class FileReader
 {
@@ -182,7 +142,7 @@ class FileReader
 
     void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int& number_of_rows) const
     {
-        for (int i = 0; i < range_and_prices.size(); i += 2)
+        for (size_t i = 0; i < range_and_prices.size(); i += 2)
         {
             string range = range_and_prices[i];
             size_t dash = range.find('-');
@@ -281,152 +241,152 @@ public:
 class Commands
 {
     const FileReader fileReader;
-    unordered_map<string,Airplane> airplanes = fileReader.GetAirplanes();
-    unordered_map<int, Ticket> bought_tickets;
+    unordered_map<string, Ticket> bought_tickets;
     ID id_generator;
     unordered_map<string, unordered_set<int>> passengers;
-    
-public:
-    void checkOrViewFlight(const string& date, const string& flight_number, bool check) const
-    {
-        string key = date + flight_number;
-        auto it = airplanes.find(key);
-        if (it != airplanes.end())
-        {
-            const Airplane& airplane = it->second;
-            if (check)
-            {
-                for (auto i = airplane.tickets.begin(); i != airplane.tickets.end(); i++)
-                {
-                    cout << i->second.place << ":" << to_string(i->second.price) + "$" << " ";
-                }
-            }
-            else
-            {
-                for (auto i = airplane.booked_tickets.begin(); i != airplane.booked_tickets.end(); i++)
-                {
-                    cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " ";
-                }
-            }           
-            cout << endl;  
-        }
-        else
-        {
-            cout << "Flight not found!" << endl;
-        }
-    }
-
-    void Book(const string& date, const string& flight_number, const string& place, const string& username)
+    unordered_map<string, Airplane> airplanes;
+        
+     Airplane* findAirplane(const string& date, const string& flight_number) 
     {
         string key = date + flight_number;
         auto airplane_it = airplanes.find(key);
         if (airplane_it != airplanes.end())
         {
-            Airplane& airplane = airplane_it->second;
-            auto it = airplane.tickets.find(place);
-            if (it != airplane.tickets.end())
-            {
-                int id = id_generator.generateID();
-                passengers[username].insert(id);
-                cout << "Confirmed with ID " << id << endl;
-                Ticket& ticket = it->second;
-                ticket.owner = username;
-                bought_tickets[id] = ticket;
-                airplane.booked_tickets[ticket.place] = ticket;
-                airplane.tickets.erase(it);
-                return;
-            }
-            else
-            {
-                cout << "Sorry, this place is already booked!" << endl;
-                return;
-            }
-        }             
-        else
-        {
-            cout << "Flight not found!" << endl;
+            return &airplane_it->second;
         }
+        cout << "Flight not found!" << endl;
+        return nullptr;
     }
 
-    void Return(int id)
+    Ticket* findTicket(unordered_map<string, Ticket>& tickets, const string& place)
     {
-        auto it = bought_tickets.find(id);
-        if (it != bought_tickets.end())
+        auto ticket_it = tickets.find(place);
+        if (ticket_it != tickets.end())
         {
-            Ticket& ticket = it->second;
-            string key = ticket.date + ticket.flight;
-
-            cout << "Confirmed " << ticket.price << "$ refund for " << ticket.owner << endl;
-
-            auto it_user = passengers.find(ticket.owner);
-            if (it_user != passengers.end())
-            {
-                unordered_set<int>& ids = it_user->second;
-                ids.erase(id);
-                if (ids.empty())
-                {
-                    passengers.erase(it_user);
-                }
-            }
-
-            ticket.owner = "";
-
-            auto airplane_it = airplanes.find(key);
-            if (airplane_it != airplanes.end())
-            {
-                Airplane& airplane = airplane_it->second; 
-                airplane.booked_tickets.erase(ticket.place);
-                airplane.tickets[ticket.place]=ticket;
-            }
-            bought_tickets.erase(it->first);
-
-        }
-        else
-        {
-            cout << "Hmm... There is no id " << id << ". Therefore, no money back))))" << endl;
-        }
+            return &ticket_it->second;
+        }        
+        return nullptr;
     }
 
-    void View(int id)
+    void removeTicketFromPassenger(const string& username, int ticket_id)
     {
-        auto it = bought_tickets.find(id);
-        if (it != bought_tickets.end())
+        unordered_set<int>* ids = findPassengerIDs(username);
+        ids->erase(ticket_id);
+        if (ids->empty())
         {
-           Ticket& ticket = it->second;
-           cout << "Flight " << ticket.flight << ", " << ticket.date << ", " << ticket.place << ", " << ticket.owner << endl;        
-        }
-        else
-        {
-            cout << "The ticket with id " << id << " was not booked." << endl;
-        }
+            passengers.erase(username);
+        }        
     }
 
-    void viewUsername(const string& username)
+     unordered_set<int>* findPassengerIDs(const string& username) 
     {
         auto it = passengers.find(username);
         if (it != passengers.end())
         {
-            const unordered_set<int>& ids = it->second;
-            int i = 1;
-            for (const int id : ids)
-            {
-                cout << i << ". ";
-                View(id);
-                i++;
-            }
+            return &it->second;
+        }
+        return nullptr;
+    }
+
+public:
+    Commands(): airplanes(fileReader.GetAirplanes()){}
+    
+    void checkOrViewFlight(const string& date, const string& flight_number, bool check) 
+    {
+        Airplane* airplane = findAirplane(date, flight_number);  
+        if (airplane == nullptr) {
+            return;
+        }
+        if (check)
+        {
+            airplane->displayAvailableTickets();
         }
         else
         {
-            cout << "Passenger not found." << endl;
+            airplane->displayBookedTickets();
         }
+        cout << endl;
     }
+   
+
+    void book(const string& date, const string& flight_number, const string& place, const string& username)
+    {
+        Airplane* airplane = findAirplane(date, flight_number);
+        if (airplane == nullptr) {
+            return;
+        }
+        Ticket* ticket = findTicket(airplane->tickets, place);
+        if (ticket == nullptr) {
+            cout << "Sorry, this place is already booked!" << endl;
+            return;
+        }        
+        int id = id_generator.generateID();
+        passengers[username].insert(id);
+        cout << "Confirmed with ID " << id << endl;
+        ticket->owner = username;
+        bought_tickets[to_string(id)] = *ticket;
+        airplane->booked_tickets[place] = *ticket;
+        airplane->tickets.erase(place);
+    }
+                 
+
+    void Return(string& id)
+    {
+        Ticket* ticket = findTicket(bought_tickets, id);
+        if (ticket == nullptr) {
+            cout << "Hmm... There is no id " << id << ". Therefore, no money back))))" << endl;
+            return;
+        }        
+        cout << "Confirmed " << ticket->price << "$ refund for " << ticket->owner << endl;
+        unordered_set<int>* ids = findPassengerIDs(ticket->owner);
+        removeTicketFromPassenger(ticket->owner, stoi(id));
+        ticket->owner = "";
+        Airplane* airplane = findAirplane(ticket->date, ticket->flight);
+        if (airplane == nullptr) {
+            return;
+        }
+        airplane->booked_tickets.erase(ticket->place);
+        airplane->tickets[ticket->place]=*ticket;          
+        bought_tickets.erase(id);        
+    }
+
+    void view(const string& id)
+    {
+        Ticket* ticket = findTicket(bought_tickets, id);
+        if (ticket == nullptr) {
+            cout << "The ticket with id " << id << " was not booked." << endl;
+            return;
+        }       
+        cout << "Flight " << ticket->flight << ", " << ticket->date << ", " << ticket->place << ", " << ticket->owner << endl;                
+    }
+
+    void viewUsername(const string& username)  
+    {
+        const unordered_set<int>* ids = findPassengerIDs(username);
+        if (ids == nullptr)
+        {
+            cout << "Passenger not found." << endl;
+            return;
+        }
+        if (ids != nullptr)
+        {
+            int i = 1;
+            for (const int id : *ids)
+            {
+                cout << i << ". ";
+                view(to_string(id));
+                i++;
+            }
+        }       
+    }
+
 
     
 };
 class UserInput
 {
     string userInput;
-    const unordered_set<string> commands = { "check", "view", "book", "return", "help", "exit", "view username", "view flight" };
+    const vector<string> commands = { "check", "view", "book", "return", "help", "exit", "view username", "view flight" };
     const vector<string> split(string& data, char delimiter) const
     {
         stringstream ss(data);
@@ -466,27 +426,18 @@ class UserInput
         }
         return true;
     }
-    bool validateDate(string& date) const
+    bool checkMonthAndYear(int month, int year)const
     {
-        if (date.length() != 10 || date[2] != '.' || date[5] != '.')
-        {
-            cout << "The format of the data is incorrect!" << endl;
-            return false;
-        }
-        vector<string> parts = split(date, '.');
-        if (!isDigit(parts[0]) || !isDigit(parts[1]) || !isDigit(parts[2]))
-        {
-            cout << "The format of the data is incorrect!" << endl;
-            return false;
-        }
-        int day = stoi(parts[0]);
-        int month = stoi(parts[1]);
-        int year = stoi(parts[2]);
         if (month > 12 || month < 1 || year < 2000)
         {
             cout << "Incorrect date numbers!" << endl;
             return false;
         }
+        return true;
+    }
+
+    bool checkDay(int month, int day, int year)const
+    {
         int daysInMonth = 31;
         if (month == 4 || month == 6 || month == 9 || month == 11) {
             daysInMonth = 30;
@@ -502,6 +453,31 @@ class UserInput
         }
         return true;
     }
+
+    bool validateDate(string& date) const
+    {
+        if (date.length() != 10 || date[2] != '.' || date[5] != '.')
+        {
+            cout << "The format of the data is incorrect!" << endl;
+            return false;
+        }
+        vector<string> parts = split(date, '.');
+        if (parts.size() != 3 || !isDigit(parts[0]) || !isDigit(parts[1]) || !isDigit(parts[2]))
+        {
+            cout << "The format of the data is incorrect!" << endl;
+            return false;
+        }
+        int day = stoi(parts[0]);
+        int month = stoi(parts[1]);
+        int year = stoi(parts[2]);
+
+        if (!checkDay(month, day, year) || !checkMonthAndYear(month, year))
+        {
+            return false;
+        }
+        return true;
+    }
+
     bool validatePlace(const string& place) const
     {
         for (size_t i = 0; i < place.length() - 1; i++)
@@ -534,7 +510,7 @@ class UserInput
             return false;
         }
     
-        for (int i = 3; i < data.size(); i++) {
+        for (size_t i = 3; i < data.size(); i++) {
             if (!isLetters(data[i])) {
                 cout << "You name should only contain letters, shouldn't it?" << endl;
                 return false;
@@ -569,50 +545,114 @@ class UserInput
         }
         return true;
     }
-    void validateCommand(string& command) 
-    {
-        bool commandFound = false;
+    void handleViewCommand(string& userInput, string& command) {
         list<string> type_view = { "username", "flight" };
-        for (const auto& cmd : commands)
-        {
-            if (userInput.rfind(cmd, 0) == 0)
-            {
-                command = cmd;
-                if (userInput.length() > cmd.length())
-                {            
-                    userInput.erase(0, cmd.length() + 1);
-                    if (command == "view")
-                    {
-                        for(const auto& view_t: type_view)
-                        {
-                            if (userInput.rfind(view_t, 0) == 0)
-                            {
-                                command = command + " " + view_t;
-                                userInput.erase(0, view_t.length() + 1);
-                            }                            
-                        }                       
-                    }
-                }
-                else
-                {
-                    if (command != " help" && command != "exit")
-                    {
-                        cout << "Bro, enter some parameters!" << endl;
-                    }
-                }
-                commandFound = true;
-                break;
+        for (const string& view_t : type_view) {
+            if (userInput.rfind(view_t, 0) == 0) {
+                command += " " + view_t;
+                userInput.erase(0, view_t.length() + 1);
+                return;
             }
         }
-        if (!commandFound)
-        {
-            cout << "Unfortunately, we do not have this command in our arsenal! Try 'help' for more info :)" << endl;
+        cout << "Invalid view type! Try 'username' or 'flight'." << endl;        
+    }
+
+    void processCommand(string& userInput, string& command, const vector<string>& commands) {
+        for (const string& cmd : commands) {
+            if (userInput.rfind(cmd, 0) == 0) {
+                command = cmd;
+                userInput.erase(0, cmd.length() + 1);
+                if (command == "view") {
+                    handleViewCommand(userInput, command);
+                }
+                return;
+            }
+        }
+        cout << "Unfortunately, we do not have this command in our arsenal! Try 'help' for more info :)" << endl;
+    }
+
+    void validateCommand(string& userInput) {
+        string command;
+        if (userInput.empty()) {
+            cout << "Input cannot be empty!" << endl;
             return;
         }
+        processCommand(userInput, command, commands);
+        if (!command.empty() && command != "help" && command != "exit") {
+            if (userInput.empty()) {
+                cout << "Bro, enter some parameters!" << endl;
+            }
+        }
     }
+    void help() {
+        cout << endl;
+    }
+
+    void exit(bool& exitFlag) {
+        cout << "Thank you for using our service! Have a good life!" << endl;
+        exitFlag = true;
+    }
+    void viewUsername(string& userInput) {
+        if (!validateUsername()) {
+            return;
+        }
+        removeSpaces(userInput);
+        const string username = userInput;
+        existing_commands.viewUsername(username);
+    }
+
+    void check(vector<string>& data) {
+        if (!validateViewFlightOrCheck(data)) {
+            return;
+        }
+        const string date = data[0];
+        const string flight_number = data[1];
+        existing_commands.checkOrViewFlight(date, flight_number, true);
+    }
+
+    void view(vector<string>& data) {
+        if (!validateReturnView(data)) {
+            return;
+        }
+        string id = data[0];
+        existing_commands.view(id);
+    }
+    void book(vector<string>& data) {
+        if (!validateBook(data))
+        {
+            return;
+        }
+        const string date = data[0];
+        const string flight_number = data[1];
+        const string place = data[2];
+        string username = "";
+        for (size_t i = 3; i < data.size(); i++)
+        {
+            username += data[i];
+        }
+        existing_commands.book(date, flight_number, place, username);
+    }
+    void Return(const vector<string>& data) {
+        if (!validateReturnView(data)) {
+            return;
+        }
+        string id = data[0];
+        existing_commands.Return(id);
+    }
+    void viewFlight(vector<string>& data) {
+        if (!validateViewFlightOrCheck(data)) {
+            return;
+        }
+        const string date = data[0];
+        const string flight_number = data[1];
+        existing_commands.checkOrViewFlight(date, flight_number, false);
+    }
+
     Commands existing_commands;
+
 public:
-    bool exit = false;
+
+    bool exit_flag = false;
 
     void TakeUserInput()
     {
@@ -622,104 +662,54 @@ public:
         validateCommand(command);
         if (command == "help")
         {
-            cout << endl;
-            return;
+            help();           
         }
         else if (command == "exit")
         {
-            cout << "Thank you for using our service! Have a good life!" << endl;
-            exit = true;
+            exit(exit_flag);
         }
         else if (command == "view username")
         {
-            if (!validateUsername())
-            {
-                return;
-            }
-            removeSpaces(userInput);
-            const string username = userInput;
-            existing_commands.viewUsername(username);
+            viewUsername(userInput);
         }
         else {
             vector<string> data = split(userInput, ' ');
             if (command == "check")
             {
-                if (!validateViewFlightOrCheck(data))
-                {
-                    return;
-                }
-                const string date = data[0];
-                const string flight_number = data[1];
-                existing_commands.checkOrViewFlight(date, flight_number, true);
-
+                check(data);
             }
             else if (command == "view")
             {
-                if (!validateReturnView(data))
-                {
-                    return;
-                }
-                const int id = stoi(data[0]);
-                existing_commands.View(id);
+                view(data);
             }
             else if (command == "book")
             {
-                if (!validateBook(data))                   
-                {
-                    return;
-                }
-                const string date = data[0];
-                const string flight_number = data[1];
-                const string place = data[2];
-                string username = "";
-                for (int i = 3; i < data.size(); i++)
-                {
-                    username += data[i];
-                }
-                existing_commands.Book(date, flight_number, place, username);
-
-
+                book(data);
             }
             else if (command == "return")
             {
-                if (!validateReturnView(data))
-                {
-                    return;
-                }
-                int id = stoi(data[0]);
-                existing_commands.Return(id);
+                Return(data);
             }
             else if (command == "view flight")
             {
-                if (!validateViewFlightOrCheck(data))
-                {
-                    return;
-                }
-                const string date = data[0];
-                const string flight_number = data[1];
-                existing_commands.checkOrViewFlight(date, flight_number, false);
-
+                viewFlight(data);
             }
         }
         userInput.clear();
     }
-};
 
-class ProgramEngine
-{
-    UserInput userInput;
-
-public:
-    ProgramEngine()
+    UserInput()
     {
-        while (!userInput.exit)
+        while (!exit_flag)
         {
-            userInput.TakeUserInput();
+            TakeUserInput();
         }
     }
 };
 
+
+
 int main()
 {
-    const ProgramEngine engine;
+    UserInput userInput;
 }
