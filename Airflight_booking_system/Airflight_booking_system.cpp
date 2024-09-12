@@ -94,8 +94,8 @@ public:
 
     const string date;
     const string flight_number;
-    unordered_map<string,Ticket> tickets;
-    unordered_map<string, Ticket> booked_tickets;
+    map<string,Ticket> tickets;
+   map<string, Ticket> booked_tickets;
 
     Airplane() = default;
 
@@ -118,13 +118,7 @@ public:
         return *this;
     }
 
-    void displayBookedTickets() const
-    {
-        for (auto i = booked_tickets.begin(); i != booked_tickets.end(); i++)
-        {
-            cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " "<< endl;
-        }
-    }
+    
 
     void displayAvailableTickets() const
     {
@@ -272,6 +266,15 @@ class Commands
         }        
         return nullptr;
     }
+    Ticket* findTicket(map<string, Ticket>& tickets, const string& place)
+    {
+        auto ticket_it = tickets.find(place);
+        if (ticket_it != tickets.end())
+        {
+            return &ticket_it->second;
+        }
+        return nullptr;
+    }
 
     void removeTicketFromPassenger(const string& username, int ticket_id)
     {
@@ -292,7 +295,13 @@ class Commands
         }
         return nullptr;
     }
-
+     void displayBookedTickets() const
+     {
+         for (auto i = bought_tickets.begin(); i != bought_tickets.end(); i++)
+         {
+             cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " " << endl;
+         }
+     }
 public:
 
     Commands(): airplanes(fileReader.GetAirplanes()){}
@@ -309,7 +318,7 @@ public:
         }
         else
         {
-            airplane->displayBookedTickets();
+            displayBookedTickets();
         }
         cout << endl;
     }  
@@ -330,7 +339,7 @@ public:
         cout << "Confirmed with ID " << id << endl;
         ticket->owner = username;
         bought_tickets[to_string(id)] = *ticket;
-        airplane->booked_tickets[place] = *ticket;
+        //airplane->booked_tickets[place] = *ticket;
         airplane->tickets.erase(place);
     }
                  
@@ -349,7 +358,7 @@ public:
         if (airplane == nullptr) {
             return;
         }
-        airplane->booked_tickets.erase(ticket->place);
+        //airplane->booked_tickets.erase(ticket->place);
         airplane->tickets[ticket->place]=*ticket;          
         bought_tickets.erase(id);        
     }
