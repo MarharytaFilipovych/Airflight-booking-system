@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <set>
 #include <unordered_map>
+#include <Windows.h>
 using namespace std;
  
 class Ticket
@@ -127,14 +128,22 @@ public:
             cout << i->second.place << ":" << to_string(i->second.price) + "$" << " ";
         }
     }
+    void displayBookedTickets() const
+    {
+        for (auto i = booked_tickets.begin(); i != booked_tickets.end(); i++)
+        {
+            cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " " << endl;
+        }
+    }
 
 };
 
 class FileReader
 {
-    const string fileName = "C:\\Margo\\Uni\\Airflight_booking_system\\Airflight_booking_system\\flights.txt";
-
-    unordered_map<string,Airplane> airplanes;
+private:
+    const string fileName = "flights.txt";
+    HANDLE fileHandle;
+    unordered_map<string, Airplane> airplanes;
 
     void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int& number_of_rows) const
     {
@@ -157,7 +166,7 @@ class FileReader
         }
     }
 
-    void createPlanes(istringstream& this_line) 
+    void createPlanes(istringstream& this_line)
     {
         string date, flight_number;
         int seats_per_row;
@@ -177,42 +186,68 @@ class FileReader
     }
 
     void readFile()
-    {
-        ifstream file(fileName);
-        if (!file.is_open())
+    {      
+        DWORD bytesRead;
+        string content;
+        char buffer[1024];
+        bool firstLine = true;
+
+        while (ReadFile(fileHandle, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
-            cout << "Your file " << fileName << " could not be opened!" << endl;
-            return;
+            buffer[bytesRead] = '\0'; 
+            content += buffer;
         }
-        int number_of_records;
-        file >> number_of_records;
-        file.ignore();
+
+
+        istringstream stream(content);
         string line;
-        while (number_of_records > 0)
+
+        int number_of_records;
+        if (getline(stream, line))
         {
-            if (!getline(file, line) || line.empty())
+            istringstream lineStream(line);
+            lineStream >> number_of_records;
+        }
+
+        while (number_of_records > 0 && getline(stream, line))
+        {
+            if (line.empty())
             {
                 continue;
             }
-            istringstream this_line(line);
 
+            istringstream this_line(line);
             createPlanes(this_line);
             number_of_records--;
         }
-        file.close();
     }
 
 public:
 
-    FileReader()
+    FileReader() : fileHandle(INVALID_HANDLE_VALUE)
     {
+        fileHandle = CreateFile(L"flights.txt", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+        if (fileHandle == INVALID_HANDLE_VALUE)
+        {
+            cout << "Your file " << fileName << " could not be opened!" << endl;
+            return;
+        }
         readFile();
     }
-    const unordered_map<string,Airplane>& GetAirplanes() const
+
+    ~FileReader()
+    {
+        if (fileHandle != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(fileHandle);
+        }
+    }
+
+    const unordered_map<string, Airplane>& GetAirplanes() const
     {
         return airplanes;
     }
-
 };
 
 class ID
@@ -295,13 +330,7 @@ class Commands
         }
         return nullptr;
     }
-     void displayBookedTickets() const
-     {
-         for (auto i = bought_tickets.begin(); i != bought_tickets.end(); i++)
-         {
-             cout << i->second.place << ", " << i->second.owner << ", " << to_string(i->second.price) + "$" << " " << endl;
-         }
-     }
+    
 public:
 
     Commands(): airplanes(fileReader.GetAirplanes()){}
@@ -318,7 +347,7 @@ public:
         }
         else
         {
-            displayBookedTickets();
+            airplane->displayBookedTickets();
         }
         cout << endl;
     }  
@@ -339,7 +368,7 @@ public:
         cout << "Confirmed with ID " << id << endl;
         ticket->owner = username;
         bought_tickets[to_string(id)] = *ticket;
-        //airplane->booked_tickets[place] = *ticket;
+        airplane->booked_tickets[place] = *ticket;
         airplane->tickets.erase(place);
     }
                  
@@ -358,7 +387,7 @@ public:
         if (airplane == nullptr) {
             return;
         }
-        //airplane->booked_tickets.erase(ticket->place);
+        airplane->booked_tickets.erase(ticket->place);
         airplane->tickets[ticket->place]=*ticket;          
         bought_tickets.erase(id);        
     }
