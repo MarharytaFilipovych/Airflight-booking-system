@@ -598,7 +598,6 @@ class UserInput
                 return;
             }
         }
-        cout << "Invalid view type! Try 'username' or 'flight'." << endl;        
     }
 
     void processCommand(string& userInput, string& command, const vector<string>& commands) {
