@@ -140,9 +140,8 @@ public:
 
 class FileReader
 {
-private:
     const string fileName = "flights.txt";
-    HANDLE fileHandle;
+
     unordered_map<string, Airplane> airplanes;
 
     void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int& number_of_rows) const
@@ -186,70 +185,43 @@ private:
     }
 
     void readFile()
-    {      
-        DWORD bytesRead;
-        string content;
-        char buffer[1024];
-        bool firstLine = true;
-
-        while (ReadFile(fileHandle, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
-        {
-            buffer[bytesRead] = '\0'; 
-            content += buffer;
-        }
-
-
-        istringstream stream(content);
-        string line;
-
-        int number_of_records;
-        if (getline(stream, line))
-        {
-            istringstream lineStream(line);
-            lineStream >> number_of_records;
-        }
-
-        while (number_of_records > 0 && getline(stream, line))
-        {
-            if (line.empty())
-            {
-                continue;
-            }
-
-            istringstream this_line(line);
-            createPlanes(this_line);
-            number_of_records--;
-        }
-    }
-
-public:
-
-    FileReader() : fileHandle(INVALID_HANDLE_VALUE)
     {
-        fileHandle = CreateFile(L"flights.txt", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-        if (fileHandle == INVALID_HANDLE_VALUE)
+        ifstream file(fileName);
+        if (!file.is_open())
         {
             cout << "Your file " << fileName << " could not be opened!" << endl;
             return;
         }
+        int number_of_records;
+        file >> number_of_records;
+        file.ignore();
+        string line;
+        while (number_of_records > 0)
+        {
+            if (!getline(file, line) || line.empty())
+            {
+                continue;
+            }
+            istringstream this_line(line);
+
+            createPlanes(this_line);
+            number_of_records--;
+        }
+        file.close();
+    }
+
+public:
+
+    FileReader()
+    {
         readFile();
     }
-
-    ~FileReader()
-    {
-        if (fileHandle != INVALID_HANDLE_VALUE)
-        {
-            CloseHandle(fileHandle);
-        }
-    }
-
     const unordered_map<string, Airplane>& GetAirplanes() const
     {
         return airplanes;
     }
-};
 
+};
 class ID
 {
     unordered_set<int> IDs;
