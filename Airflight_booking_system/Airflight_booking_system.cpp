@@ -142,7 +142,7 @@ class FileReader
 {
 private:
     const string fileName = "flights.txt";
-    HANDLE fileHandle;
+    HANDLE hFile;
     unordered_map<string, Airplane> airplanes;
 
     void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int& number_of_rows) const
@@ -185,18 +185,17 @@ private:
         airplanes[key] = airplane;
     }
 
-    const string readFile() const
+    const string readFile()const
     {
-        DWORD bytesRead;
-        string content;
+        DWORD numberOfBytesRead;
         char buffer[1024];
-        bool firstLine = true;
-        while (ReadFile(fileHandle, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
-        {
-            buffer[bytesRead] = '\0';
-            content += buffer;
+        string fileContent;
+        DWORD numberOfBytesToRead = sizeof(buffer) - 1;
+        while (ReadFile(hFile, buffer, numberOfBytesToRead, &numberOfBytesRead, NULL) && numberOfBytesRead > 0) {
+            buffer[numberOfBytesRead] = '\0';
+            fileContent.append(buffer);
         }
-        return content; 
+        return fileContent;
     }
 
     void processContent()
@@ -224,11 +223,11 @@ private:
 
 public:
 
-    FileReader() : fileHandle(INVALID_HANDLE_VALUE)
+    FileReader() : hFile(INVALID_HANDLE_VALUE)
     {
-        fileHandle = CreateFileA(fileName.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        hFile = CreateFileA(fileName.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-        if (fileHandle == INVALID_HANDLE_VALUE)
+        if (hFile == INVALID_HANDLE_VALUE)
         {
             cout << "Your file " << fileName << " could not be opened!" << endl;
             return;
@@ -238,9 +237,9 @@ public:
 
     ~FileReader()
     {
-        if (fileHandle != INVALID_HANDLE_VALUE)
+        if (hFile != INVALID_HANDLE_VALUE)
         {
-            CloseHandle(fileHandle);
+            CloseHandle(hFile);
         }
     }
 
