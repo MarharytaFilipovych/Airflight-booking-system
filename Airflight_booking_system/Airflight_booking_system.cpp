@@ -226,14 +226,14 @@ public:
 
     FileReader() : fileHandle(INVALID_HANDLE_VALUE)
     {
-        fileHandle = CreateFile(L"flights.txt", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        fileHandle = CreateFileA(fileName.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
         if (fileHandle == INVALID_HANDLE_VALUE)
         {
             cout << "Your file " << fileName << " could not be opened!" << endl;
             return;
         }
-        readFile();
+        processContent();
     }
 
     ~FileReader()
