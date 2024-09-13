@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <Windows.h>
 using namespace std;
- 
+
 class Ticket
 {
 public:
@@ -81,7 +81,7 @@ class Airplane
         }
         cout << endl;
 
-    }      
+    }
     void displayAirplane() const
     {
         cout << "Info about airplane " << flight_number << ":\n"
@@ -95,15 +95,15 @@ public:
 
     const string date;
     const string flight_number;
-    map<string,Ticket> tickets;
-   map<string, Ticket> booked_tickets;
+    map<string, Ticket> tickets;
+    map<string, Ticket> booked_tickets;
 
     Airplane() = default;
 
     Airplane(const string& day, const string& flight, const int number_seats, const map<vector<int>, int>& prices_for_rows, const int rows) : number_of_seats_per_row(number_seats), date(day), flight_number(flight), prices(prices_for_rows), number_of_rows(rows) {
         getSeatNumbers();
         generateTickets();
-    }   
+    }
 
     Airplane& operator=(const Airplane& other)
     {
@@ -119,7 +119,7 @@ public:
         return *this;
     }
 
-    
+
 
     void displayAvailableTickets() const
     {
@@ -140,8 +140,9 @@ public:
 
 class FileReader
 {
+private:
     const string fileName = "flights.txt";
-
+    HANDLE hFile;
     unordered_map<string, Airplane> airplanes;
 
     void MakeTableOfPrices(vector<string>& range_and_prices, map<vector<int>, int>& prices, int& number_of_rows) const
@@ -184,44 +185,70 @@ class FileReader
         airplanes[key] = airplane;
     }
 
-    void readFile()
+    const string readFile()const
     {
-        ifstream file(fileName);
-        if (!file.is_open())
-        {
-            cout << "Your file " << fileName << " could not be opened!" << endl;
-            return;
+        DWORD numberOfBytesRead;
+        char buffer[1024];
+        string fileContent;
+        DWORD numberOfBytesToRead = sizeof(buffer) - 1;
+        while (ReadFile(hFile, buffer, numberOfBytesToRead, &numberOfBytesRead, NULL) && numberOfBytesRead > 0) {
+            buffer[numberOfBytesRead] = '\0';
+            fileContent.append(buffer);
         }
-        int number_of_records;
-        file >> number_of_records;
-        file.ignore();
+        return fileContent;
+    }
+
+    void processContent()
+    {
+        const string content = readFile();
+        istringstream stream(content);
         string line;
-        while (number_of_records > 0)
+        int number_of_records = 0;
+        if (getline(stream, line))
         {
-            if (!getline(file, line) || line.empty())
+            istringstream lineStream(line);
+            lineStream >> number_of_records;
+        }
+        while (number_of_records > 0 && getline(stream, line))
+        {
+            if (line.empty())
             {
                 continue;
             }
             istringstream this_line(line);
-
             createPlanes(this_line);
             number_of_records--;
         }
-        file.close();
     }
 
 public:
 
-    FileReader()
+    FileReader() : hFile(INVALID_HANDLE_VALUE)
     {
-        readFile();
+        hFile = CreateFileA(fileName.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+        if (hFile == INVALID_HANDLE_VALUE)
+        {
+            cout << "Your file " << fileName << " could not be opened!" << endl;
+            return;
+        }
+        processContent();
     }
+
+    ~FileReader()
+    {
+        if (hFile != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(hFile);
+        }
+    }
+
     const unordered_map<string, Airplane>& GetAirplanes() const
     {
         return airplanes;
     }
-
 };
+
 class ID
 {
     unordered_set<int> IDs;
@@ -251,8 +278,8 @@ class Commands
     ID id_generator;
     unordered_map<string, unordered_set<int>> passengers;
     unordered_map<string, Airplane> airplanes;
-        
-     Airplane* findAirplane(const string& date, const string& flight_number) 
+
+    Airplane* findAirplane(const string& date, const string& flight_number)
     {
         string key = date + flight_number;
         auto airplane_it = airplanes.find(key);
@@ -270,7 +297,7 @@ class Commands
         if (ticket_it != tickets.end())
         {
             return &ticket_it->second;
-        }        
+        }
         return nullptr;
     }
     Ticket* findTicket(map<string, Ticket>& tickets, const string& place)
@@ -290,10 +317,10 @@ class Commands
         if (ids->empty())
         {
             passengers.erase(username);
-        }        
+        }
     }
 
-     unordered_set<int>* findPassengerIDs(const string& username) 
+    unordered_set<int>* findPassengerIDs(const string& username)
     {
         auto it = passengers.find(username);
         if (it != passengers.end())
@@ -302,14 +329,14 @@ class Commands
         }
         return nullptr;
     }
-    
+
 public:
 
-    Commands(): airplanes(fileReader.GetAirplanes()){}
-    
-    void checkOrViewFlight(const string& date, const string& flight_number, bool check) 
+    Commands() : airplanes(fileReader.GetAirplanes()) {}
+
+    void checkOrViewFlight(const string& date, const string& flight_number, bool check)
     {
-        Airplane* airplane = findAirplane(date, flight_number);  
+        Airplane* airplane = findAirplane(date, flight_number);
         if (airplane == nullptr) {
             return;
         }
@@ -322,7 +349,7 @@ public:
             airplane->displayBookedTickets();
         }
         cout << endl;
-    }  
+    }
 
     void book(const string& date, const string& flight_number, const string& place, const string& username)
     {
@@ -334,7 +361,7 @@ public:
         if (ticket == nullptr) {
             cout << "Sorry, this place is already booked!" << endl;
             return;
-        }        
+        }
         int id = id_generator.generateID();
         passengers[username].insert(id);
         cout << "Confirmed with ID " << id << endl;
@@ -343,14 +370,14 @@ public:
         airplane->booked_tickets[place] = *ticket;
         airplane->tickets.erase(place);
     }
-                 
+
     void Return(string& id)
     {
         Ticket* ticket = findTicket(bought_tickets, id);
         if (ticket == nullptr) {
             cout << "Hmm... There is no id " << id << ". Therefore, no money back))))" << endl;
             return;
-        }        
+        }
         cout << "Confirmed " << ticket->price << "$ refund for " << ticket->owner << endl;
         unordered_set<int>* ids = findPassengerIDs(ticket->owner);
         removeTicketFromPassenger(ticket->owner, stoi(id));
@@ -360,8 +387,8 @@ public:
             return;
         }
         airplane->booked_tickets.erase(ticket->place);
-        airplane->tickets[ticket->place]=*ticket;          
-        bought_tickets.erase(id);        
+        airplane->tickets[ticket->place] = *ticket;
+        bought_tickets.erase(id);
     }
 
     void view(const string& id)
@@ -370,11 +397,11 @@ public:
         if (ticket == nullptr) {
             cout << "The ticket with id " << id << " was not booked." << endl;
             return;
-        }       
-        cout << "Flight " << ticket->flight << ", " << ticket->date << ", " << ticket->place << ", " << ticket->owner << endl;                
+        }
+        cout << "Flight " << ticket->flight << ", " << ticket->date << ", " << ticket->place << ", " << ticket->owner << endl;
     }
 
-    void viewUsername(const string& username)  
+    void viewUsername(const string& username)
     {
         const unordered_set<int>* ids = findPassengerIDs(username);
         if (ids == nullptr)
@@ -391,8 +418,8 @@ public:
                 view(to_string(id));
                 i++;
             }
-        }       
-    }   
+        }
+    }
 };
 
 class UserInput
@@ -512,7 +539,7 @@ class UserInput
         return true;
     }
 
-    bool validateBook( vector<string>& data) const
+    bool validateBook(vector<string>& data) const
     {
         if (data.size() < 4)
         {
@@ -522,7 +549,7 @@ class UserInput
         if (!validateDate(data[0]) || !validateFlightNumber(data[1]) || !validatePlace(data[2]))
         {
             return false;
-        }    
+        }
         for (size_t i = 3; i < data.size(); i++) {
             if (!isLetters(data[i])) {
                 cout << "You name should only contain letters, shouldn't it?" << endl;
@@ -539,16 +566,16 @@ class UserInput
             cout << "Incorrrect data for book command :(" << endl;
             return false;
         }
-        if (!validateDate(data[0]) || !validateFlightNumber(data[1]) )
+        if (!validateDate(data[0]) || !validateFlightNumber(data[1]))
         {
             return false;
-        }       
+        }
         return true;
     }
 
     void removeSpaces(string& username) const
     {
-       username.erase(remove(username.begin(), username.end(), ' '), username.end());
+        username.erase(remove(username.begin(), username.end(), ' '), username.end());
     }
 
     bool validateUsername() const
@@ -595,7 +622,7 @@ class UserInput
         if (!command.empty() && command != "help" && command != "exit") {
             if (userInput.empty()) {
                 cout << "Bro, enter some parameters!" << endl;
-            }      
+            }
         }
     }
 
