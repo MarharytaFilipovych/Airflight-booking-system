@@ -185,37 +185,37 @@ private:
         airplanes[key] = airplane;
     }
 
-    void readFile()
-    {      
+    const string readFile() const
+    {
         DWORD bytesRead;
         string content;
         char buffer[1024];
         bool firstLine = true;
-
         while (ReadFile(fileHandle, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
-            buffer[bytesRead] = '\0'; 
+            buffer[bytesRead] = '\0';
             content += buffer;
         }
+        return content; 
+    }
 
-
+    void processContent()
+    {
+        const string content = readFile(); 
         istringstream stream(content);
         string line;
-
-        int number_of_records;
+        int number_of_records = 0;
         if (getline(stream, line))
         {
             istringstream lineStream(line);
             lineStream >> number_of_records;
         }
-
         while (number_of_records > 0 && getline(stream, line))
         {
             if (line.empty())
             {
                 continue;
             }
-
             istringstream this_line(line);
             createPlanes(this_line);
             number_of_records--;
